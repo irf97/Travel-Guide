@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --background: 222 45% 5%;
-  --foreground: 210 40% 98%;
-  --card: 222 35% 9%;
-  --muted: 222 22% 65%;
-  --border: 220 20% 20%;
-  --primary: 192 95% 72%;
+  --background: 222 38% 6%;
+  --foreground: 210 38% 96%;
+  --card: 222 30% 10%;
+  --muted: 222 20% 68%;
+  --border: 220 18% 22%;
+  --primary: 192 90% 74%;
 }
 
 * { box-sizing: border-box; }
@@ -16,23 +16,31 @@ html { scroll-behavior: smooth; }
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(125, 211, 252, 0.18), transparent 34rem),
-    radial-gradient(circle at top right, rgba(192, 132, 252, 0.16), transparent 34rem),
-    linear-gradient(180deg, #070b13, #0d1224 52%, #070b13);
+    radial-gradient(circle at 12% 0%, rgba(125, 211, 252, 0.13), transparent 32rem),
+    radial-gradient(circle at 88% 4%, rgba(192, 132, 252, 0.115), transparent 34rem),
+    linear-gradient(180deg, #080d17 0%, #0d1323 48%, #090d16 100%);
   color: hsl(var(--foreground));
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: rgba(125, 211, 252, 0.28); }
+
+input, select, textarea {
+  color-scheme: dark;
 }
 
 .glass {
-  border: 1px solid rgba(255,255,255,0.14);
-  background: linear-gradient(180deg, rgba(255,255,255,0.105), rgba(255,255,255,0.055));
-  box-shadow: 0 28px 80px rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.115);
+  background: linear-gradient(180deg, rgba(255,255,255,0.092), rgba(255,255,255,0.045));
+  box-shadow: 0 24px 70px rgba(0,0,0,0.28);
 }
 
 .soft-card {
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.075);
+  border: 1px solid rgba(255,255,255,0.105);
+  background: rgba(255,255,255,0.055);
 }
 
 .score-fill {
-  background: linear-gradient(90deg, #86efac, #7dd3fc, #c084fc);
+  background: linear-gradient(90deg, #a7f3d0, #bae6fd, #ddd6fe);
 }
