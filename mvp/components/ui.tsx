@@ -20,13 +20,7 @@ export function SectionHeader({ eyebrow, title, body }: { eyebrow?: string; titl
 
 export function Button({ className, children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      className={cn(
-        "rounded-full bg-gradient-to-r from-emerald-200 via-sky-200 to-purple-200 px-4 py-2.5 font-black text-slate-950 shadow-[0_18px_50px_rgba(125,211,252,0.14)] transition hover:scale-[1.01] hover:shadow-[0_18px_60px_rgba(125,211,252,0.22)]",
-        className
-      )}
-      {...props}
-    >
+    <button className={cn("rounded-full bg-gradient-to-r from-emerald-200 via-sky-200 to-purple-200 px-4 py-2.5 font-black text-slate-950 shadow-[0_18px_50px_rgba(125,211,252,0.14)] transition hover:scale-[1.01] hover:shadow-[0_18px_60px_rgba(125,211,252,0.22)]", className)} {...props}>
       {children}
     </button>
   );
@@ -34,13 +28,7 @@ export function Button({ className, children, ...props }: React.ButtonHTMLAttrib
 
 export function GhostButton({ className, children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      className={cn(
-        "rounded-full border border-white/12 bg-white/[0.06] px-4 py-2.5 font-bold text-slate-100 transition hover:border-sky-200/50 hover:bg-white/[0.09]",
-        className
-      )}
-      {...props}
-    >
+    <button className={cn("rounded-full border border-white/12 bg-white/[0.06] px-4 py-2.5 font-bold text-slate-100 transition hover:border-sky-200/50 hover:bg-white/[0.09]", className)} {...props}>
       {children}
     </button>
   );
@@ -62,7 +50,41 @@ export function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 export function JsonPanel({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <pre className={cn("max-h-[540px] overflow-auto rounded-2xl border border-white/10 bg-slate-950/55 p-4 text-xs leading-5 text-sky-100/90", className)}>{children}</pre>;
+  return <pre className={cn("max-h-[420px] overflow-auto rounded-2xl border border-white/10 bg-slate-950/55 p-4 text-xs leading-5 text-sky-100/90", className)}>{children}</pre>;
+}
+
+export function CollapsibleJson({ label = "View raw data", children }: { label?: string; children: React.ReactNode }) {
+  return (
+    <details className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <summary className="cursor-pointer text-sm font-bold text-slate-200">{label}</summary>
+      <JsonPanel className="mt-3">{children}</JsonPanel>
+    </details>
+  );
+}
+
+export function MetricBar({ label, score }: { label: string; score: number }) {
+  const safe = Math.max(0, Math.min(100, Math.round(score)));
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-300">
+        <span>{label}</span>
+        <span>{safe}</span>
+      </div>
+      <div className="h-2.5 overflow-hidden rounded-full border border-white/10 bg-white/10">
+        <div className="score-fill h-full rounded-full" style={{ width: `${safe}%` }} />
+      </div>
+    </div>
+  );
+}
+
+export function StatPill({ label, value, note }: { label: string; value: React.ReactNode; note?: string }) {
+  return (
+    <SoftCard className="p-4">
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className="mt-2 text-2xl font-black tracking-tight text-white">{value}</p>
+      {note ? <p className="mt-1 text-sm text-slate-400">{note}</p> : null}
+    </SoftCard>
+  );
 }
 
 export function ScoreBar({ label, score, meta }: { label: string; score: number; meta?: string }) {
