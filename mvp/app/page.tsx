@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button, Card, Chip, FieldLabel, GhostButton, JsonPanel, ScoreBar, SectionHeader, SoftCard } from "@/components/ui";
 import { cities, events, months, places } from "@/lib/seed";
-import { defaultIntent, extractIntentLocally } from "@/lib/extraction";
+import { extractIntentLocally } from "@/lib/extraction";
 import { scoreCity, scorePlace } from "@/lib/scoring";
 import type { FeatureKey, Intent, Place, TravelStyle } from "@/lib/types";
 import { formatEuro } from "@/lib/utils";
@@ -86,7 +86,7 @@ export default function App() {
       {page === "Places" && <Places rankedPlaces={rankedPlaces} setTempPlace={setTempPlace} />}
       {page === "Business Portal" && <BusinessPortal />}
       {page === "Image Definer" && <ImageDefiner />}
-      {page === "Networking" && <Networking intent={intent} />}
+      {page === "Networking" && <Networking />}
       {page === "Itinerary" && <Itinerary rankedPlaces={rankedPlaces} rankedCities={rankedCities} />}
       {page === "Cost Model" && <CostModel />}
       {page === "Safety" && <Safety />}
