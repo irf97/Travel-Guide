@@ -2,6 +2,11 @@ name: Deploy MVP frontend preview to GitHub Pages
 
 on:
   workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "site5/**"
+      - ".github/workflows/deploy-mvp-preview.yml"
 
 permissions:
   contents: read
@@ -25,7 +30,7 @@ jobs:
       - name: Prepare MVP preview artifact
         run: |
           mkdir -p preview
-          cp site4/index.html preview/index.html
+          cp site5/index.html preview/index.html
           cat > preview/MVP_DEPLOYMENT_NOTE.txt <<'EOF'
           This GitHub Pages deployment is a static frontend preview.
 
