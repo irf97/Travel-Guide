@@ -1,0 +1,52 @@
+name: Deploy MVP frontend preview to GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare MVP preview artifact
+        run: |
+          mkdir -p preview
+          cp site4/index.html preview/index.html
+          cat > preview/MVP_DEPLOYMENT_NOTE.txt <<'EOF'
+          This GitHub Pages deployment is a static frontend preview.
+
+          The production MVP code lives in /mvp and is intended for Vercel/Supabase.
+          GitHub Pages cannot run Next.js API routes, Supabase server operations, OpenAI server endpoints, or Prisma database calls.
+
+          For production:
+          - Deploy /mvp on Vercel
+          - Connect Supabase PostgreSQL/Auth/Storage
+          - Add OPENAI_API_KEY in server environment variables
+          - Keep GitHub Pages only as investor/demo hosting
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload static MVP preview
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./preview
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
