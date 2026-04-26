@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  name      String?
+  createdAt DateTime @default(now())
+  trips     Trip[]
+  feedback  UserFeedback[]
+}
+
+model Trip {
+  id                  String              @id @default(cuid())
+  userId              String?
+  user                User?               @relation(fields: [userId], references: [id])
+  title               String
+  createdAt           DateTime            @default(now())
+  preferenceProfileId String?
+  preferenceProfile   PreferenceProfile?  @relation(fields: [preferenceProfileId], references: [id])
+  recommendations     Recommendation[]
+  routes              ItineraryRoute[]
+}
+
+model PreferenceProfile {
+  id        String   @id @default(cuid())
+  rawInput  String
+  intent    Json
+  createdAt DateTime @default(now())
+  trips     Trip[]
+}
+
+model City {
+  id                    String         @id
+  name                  String
+  country               String
+  types                 String[]
+  baseCostPerPerson     Int
+  averageDailyCost      Int
+  socialDensityScore    Int
+  nightlifeScore        Int
+  historyScore          Int
+  foodCultureScore      Int
+  mobilityScore         Int
+  seaAccess             Boolean
+  crowdPressureByMonth  Json
+  seasonalityByMonth    Json
+  bestNeighborhoods     String[]
+  riskFlags             String[]
+  nationalityMixContext String
+  notes                 String
+  neighborhoods         Neighborhood[]
+  places                Place[]
+  events                Event[]
+}
+
+model Neighborhood {
+  id      String @id @default(cuid())
+  cityId  String
+  city    City   @relation(fields: [cityId], references: [id])
+  name    String
+  notes   String?
+  score   Int?
+}
+
+model Place {
+  id                      String            @id
+  name                    String
+  type                    String
+  cityId                  String
+  city                    City              @relation(fields: [cityId], references: [id])
+  neighborhood            String
+  ambienceTags            String[]
+  featureTags             String[]
+  priceLevel              Int
+  socialAmbienceScore     Int
+  evidenceConfidenceScore Int
+  businessConfirmed       Boolean           @default(false)
+  goodFor                 String[]
+  notes                   String
+  images                  PlaceImage[]
+  aiTags                  PlaceAiTag[]
+  businessProfiles        BusinessProfile[]
+}
+
+model PlaceFeature {
+  id          String @id @default(cuid())
+  key         String @unique
+  label       String
+  description String?
+}
+
+model PlaceImage {
+  id        String   @id @default(cuid())
+  placeId   String
+  place     Place    @relation(fields: [placeId], references: [id])
+  url       String
+  category  String
+  createdAt DateTime @default(now())
+}
+
+model PlaceAiTag {
+  id         String   @id @default(cuid())
+  placeId    String
+  place      Place    @relation(fields: [placeId], references: [id])
+  tags       Json
+  confidence Json
+  createdAt  DateTime @default(now())
+}
+
+model BusinessClaim {
+  id          String   @id @default(cuid())
+  placeId     String?
+  businessName String
+  claimantEmail String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+}
+
+model BusinessProfile {
+  id        String   @id @default(cuid())
+  placeId   String?
+  place     Place?   @relation(fields: [placeId], references: [id])
+  profile   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id       String @id
+  name     String
+  category String
+  cityId   String
+  city     City   @relation(fields: [cityId], references: [id])
+  tags     String[]
+  notes    String
+}
+
+model Recommendation {
+  id        String   @id @default(cuid())
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id])
+  type      String
+  targetId  String
+  score     Int
+  reason    String
+  createdAt DateTime @default(now())
+}
+
+model ItineraryRoute {
+  id        String   @id @default(cuid())
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id])
+  route     Json
+  createdAt DateTime @default(now())
+}
+
+model UserFeedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  targetType String
+  targetId   String
+  rating     Int
+  notes      String?
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
