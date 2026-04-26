@@ -44,17 +44,21 @@ function containsAny(text: string, keywords: string[]) {
   return keywords.some((keyword) => text.includes(keyword));
 }
 
+function addUnique(styles: TravelStyle[], style: TravelStyle) {
+  if (!styles.includes(style)) styles.push(style);
+}
+
 function inferStyles(text: string, fallback: TravelStyle): TravelStyle[] {
-  const styles = new Set<TravelStyle>();
-  if (/social|meet people|international|friends|network/.test(text)) styles.add("social");
-  if (/nightlife|club|bar|party|pre-drink/.test(text)) styles.add("nightlife");
-  if (/historic|history|old town|museum|culture|rome/.test(text)) styles.add("culture");
-  if (/food|seafood|restaurant|market|local/.test(text)) styles.add("food");
-  if (/cheap|budget|affordable|not expensive/.test(text)) styles.add("budget");
-  if (/remote work|coworking|laptop|wifi/.test(text)) styles.add("remote-work");
-  if (/sports|football|volleyball|surf/.test(text)) styles.add("sports");
-  if (styles.size === 0) styles.add(fallback);
-  return [...styles].slice(0, 3);
+  const styles: TravelStyle[] = [];
+  if (/social|meet people|international|friends|network/.test(text)) addUnique(styles, "social");
+  if (/nightlife|club|bar|party|pre-drink/.test(text)) addUnique(styles, "nightlife");
+  if (/historic|history|old town|museum|culture|rome/.test(text)) addUnique(styles, "culture");
+  if (/food|seafood|restaurant|market|local/.test(text)) addUnique(styles, "food");
+  if (/cheap|budget|affordable|not expensive/.test(text)) addUnique(styles, "budget");
+  if (/remote work|coworking|laptop|wifi/.test(text)) addUnique(styles, "remote-work");
+  if (/sports|football|volleyball|surf/.test(text)) addUnique(styles, "sports");
+  if (styles.length === 0) addUnique(styles, fallback);
+  return styles.slice(0, 3);
 }
 
 export function extractIntentLocally(input: {
