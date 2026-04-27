@@ -45,23 +45,18 @@ function fallbackTrip(input: TripInput): TripView {
   return { id: `fallback_${Date.now()}`, ...input, createdAt: new Date().toISOString() };
 }
 
-function tripFromInput(id: string, input: TripInput, createdAt: Date | string = new Date()): TripView {
+function tripViewFromDb(trip: { id: string; title: string; cityId: string | null; month: string | null; budgetLevel: string | null; goal: string | null; computedScore: number | null; notes: string | null; createdAt: Date | string }): TripView {
   return {
-    id,
-    title: input.title,
-    cityId: input.cityId,
-    month: input.month,
-    budgetLevel: input.budgetLevel,
-    goal: input.goal,
-    computedScore: input.computedScore,
-    notes: input.notes,
-    createdAt: createdAt instanceof Date ? createdAt.toISOString() : createdAt
+    id: trip.id,
+    title: trip.title,
+    cityId: trip.cityId ?? undefined,
+    month: trip.month ?? undefined,
+    budgetLevel: trip.budgetLevel ?? undefined,
+    goal: trip.goal ?? undefined,
+    computedScore: trip.computedScore ?? undefined,
+    notes: trip.notes ?? undefined,
+    createdAt: trip.createdAt instanceof Date ? trip.createdAt.toISOString() : String(trip.createdAt)
   };
-}
-
-function persistedTitle(input: TripInput): string {
-  const parts = [input.title, input.cityId ? `city:${input.cityId}` : null, input.month ? `month:${input.month}` : null, input.computedScore ? `score:${input.computedScore}` : null].filter(Boolean);
-  return parts.join(" | ");
 }
 
 export async function GET() {
@@ -69,15 +64,7 @@ export async function GET() {
     return ok(await withDb<TripsGetResponse>(
       async (db) => {
         const trips = await db.trip.findMany({ orderBy: { createdAt: "desc" }, take: 50 });
-        return {
-          status: "live",
-          trips: trips.map((trip) => ({
-            id: trip.id,
-            title: trip.title,
-            createdAt: trip.createdAt instanceof Date ? trip.createdAt.toISOString() : String(trip.createdAt)
-          })),
-          message: "Trips loaded from database. Rich trip metadata will persist after Prisma Client is regenerated from the expanded schema."
-        };
+        return { status: "live", trips: trips.map(tripViewFromDb), message: "Trips loaded from database." };
       },
       () => ({ status: "fallback", trips: [], message: "DATABASE_URL is not configured; saved trips are not persisted yet." })
     ));
@@ -94,10 +81,16 @@ export async function POST(request: Request) {
       async (db) => {
         const created = await db.trip.create({
           data: {
-            title: persistedTitle(input)
+            title: input.title,
+            cityId: input.cityId,
+            month: input.month,
+            budgetLevel: input.budgetLevel,
+            goal: input.goal,
+            computedScore: input.computedScore,
+            notes: input.notes
           }
         });
-        return { status: "live", persisted: true, trip: tripFromInput(created.id, input, created.createdAt), message: "Trip saved to database. Current Prisma Client persists the title field; richer metadata is returned to the UI and will persist after migration/generation." };
+        return { status: "live", persisted: true, trip: tripViewFromDb(created), message: "Trip saved to database with full metadata." };
       },
       () => ({ status: "fallback", persisted: false, trip: fallbackTrip(input), message: "DATABASE_URL is not configured; this trip was not persisted." })
     ));
