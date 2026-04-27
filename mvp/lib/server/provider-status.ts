@@ -21,8 +21,12 @@ function provider(input: Omit<ProviderHealth, "configured" | "status"> & { envVa
   const envVars = input.envVars ?? [];
   const configured = input.noKey ? true : hasEvery(envVars);
   return {
-    ...input,
+    key: input.key,
+    label: input.label,
+    category: input.category,
+    requiredForPersonalUse: input.requiredForPersonalUse,
     envVars,
+    notes: input.notes,
     configured,
     status: configured ? "available" : input.requiredForPersonalUse ? "fallback" : "not_configured"
   };
@@ -36,7 +40,7 @@ export function getProviderHealth(): ProviderHealth[] {
   return [
     { key: "database", label: "Postgres / Prisma", category: "infra", configured: db.configured, requiredForPersonalUse: true, status: db.configured ? "live" : "fallback", envVars: ["DATABASE_URL"], notes: db.reason ?? "Database adapter is live." },
     { key: "supabase", label: "Supabase Storage/Auth", category: "infra", configured: supabase.configured, requiredForPersonalUse: false, status: supabase.configured ? "live" : "fallback", envVars: ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"], notes: supabase.reason ?? "Supabase adapter is live." },
-    { key: "s3", label: "S3-compatible object storage", category: "infra", ...provider({ key: "s3", label: "S3-compatible object storage", category: "infra", requiredForPersonalUse: false, envVars: ["S3_ENDPOINT", "S3_BUCKET", "S3_ACCESS_KEY", "S3_SECRET_KEY"], notes: "Needed for local Parquet/artifact storage outside Supabase." }) },
+    provider({ key: "s3", label: "S3-compatible object storage", category: "infra", requiredForPersonalUse: false, envVars: ["S3_ENDPOINT", "S3_BUCKET", "S3_ACCESS_KEY", "S3_SECRET_KEY"], notes: "Needed for local Parquet/artifact storage outside Supabase." }),
     { key: "openai", label: "OpenAI gated adapter", category: "ai", configured: ai.configured, requiredForPersonalUse: false, status: ai.configured ? "available" : "fallback", envVars: ["OPENAI_API_KEY"], notes: ai.reason ?? "AI adapter is configured; paid calls remain gated." },
     provider({ key: "open-meteo", label: "Open-Meteo", category: "open-live", requiredForPersonalUse: true, noKey: true, envVars: ["OPEN_METEO_BASE"], notes: "No key required. Used for weather comfort and outdoor/social risk." }),
     provider({ key: "overpass", label: "OSM Overpass", category: "open-live", requiredForPersonalUse: false, noKey: true, envVars: ["OVERPASS_URL"], notes: "No key, rate-limited. Cache aggressively and self-host later." }),
