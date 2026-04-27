@@ -1,6 +1,5 @@
-import { ImmersiveWorld } from "@/components/immersive-world";
-import { worldCities } from "@/lib/world-data";
+import { WorldCommandCenter } from "@/components/world-command-center";
 
 export default function WorldPage() {
-  return <ImmersiveWorld cities={worldCities} />;
+  return <WorldCommandCenter />;
 }
