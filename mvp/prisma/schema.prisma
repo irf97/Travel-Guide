@@ -24,6 +24,7 @@ model Trip {
   id                  String              @id @default(cuid())
   userId              String?
   user                User?               @relation(fields: [userId], references: [id])
+  visitorKey          String?
   title               String
   cityId              String?
   month               String?
@@ -37,6 +38,8 @@ model Trip {
   preferenceProfile   PreferenceProfile?  @relation(fields: [preferenceProfileId], references: [id])
   recommendations     Recommendation[]
   routes              ItineraryRoute[]
+
+  @@index([visitorKey])
 }
 
 model PreferenceProfile {
