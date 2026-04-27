@@ -1,7 +1,5 @@
 import { ok } from "@/lib/server/api";
-import { worldCities } from "@/lib/world-data";
-import { getCityDemographicModel } from "@/lib/city-demographics";
-import { getCityTourismModel, getStoredTourismSnapshot } from "@/lib/tourism-data";
+import { getAllCityIntelligence, getCityIntelligenceVersions } from "@/lib/city-intelligence";
 
 export const dynamic = "force-dynamic";
 
@@ -10,14 +8,22 @@ export async function GET(request: Request) {
   const country = url.searchParams.get("country");
   const continent = url.searchParams.get("continent");
   const q = url.searchParams.get("q")?.toLowerCase().trim();
-  const snapshot = getStoredTourismSnapshot();
+  const month = url.searchParams.get("month") ?? "July";
+  const allCities = getAllCityIntelligence();
 
-  const cities = worldCities
+  const cities = allCities
     .filter((city) => !country || city.country === country)
     .filter((city) => !continent || city.continent === continent)
-    .filter((city) => !q || `${city.name} ${city.country} ${city.continent} ${city.types.join(" ")} ${city.best_neighborhoods.join(" ")}`.toLowerCase().includes(q))
-    .map((city) => ({ ...city, demographics: getCityDemographicModel(city), tourism: getCityTourismModel(city) }));
+    .filter((city) => !q || `${city.name} ${city.country} ${city.continent} ${city.types.join(" ")} ${city.best_neighborhoods.join(" ")}`.toLowerCase().includes(q));
 
-  const countries = [...new Set(worldCities.map((city) => city.country))].sort();
-  return ok({ status: snapshot.status, sourceLabel: "Stored downloadable tourism snapshot", tourismRelease: snapshot.version, cities, countries, total: cities.length });
+  const countries = [...new Set(allCities.map((city) => city.country))].sort();
+  return ok({
+    status: "stored-city-intelligence",
+    sourceLabel: "Stored city intelligence layer",
+    versions: getCityIntelligenceVersions(),
+    month,
+    cities,
+    countries,
+    total: cities.length
+  });
 }
