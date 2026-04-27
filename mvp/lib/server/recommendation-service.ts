@@ -16,6 +16,14 @@ function cityWithDefaults(city: City, index = 0) {
   };
 }
 
+function normalizePriceLevel(value: number | undefined): Place["price_level"] {
+  if (!value || Number.isNaN(value)) return 2;
+  const rounded = Math.round(value);
+  if (rounded <= 1) return 1;
+  if (rounded >= 5) return 5;
+  return rounded as Place["price_level"];
+}
+
 type TemporaryCityInput = {
   intent: Intent;
   city: Partial<City> & {
@@ -43,7 +51,7 @@ type TemporaryCityInput = {
 type TemporaryPlaceInput = {
   intent: Intent;
   cityScore: number;
-  place: Partial<Place> & {
+  place: Omit<Partial<Place>, "price_level"> & {
     id?: string;
     name: string;
     type: string;
@@ -51,7 +59,7 @@ type TemporaryPlaceInput = {
     neighborhood?: string;
     ambience_tags?: string[];
     feature_tags?: Place["feature_tags"];
-    price_level?: Place["price_level"];
+    price_level?: number;
     social_ambience_score?: number;
     evidence_confidence_score?: number;
     business_confirmed?: boolean;
@@ -131,7 +139,7 @@ export function recommendWorldService(input: {
   const selected = rankedWithRanks.find((item) => item.city.id === input.selectedCityId) ?? visible[0] ?? rankedWithRanks[0];
   const leaders = Array.from(new Set(worldCities.map((city) => city.continent))).map((continent) => rankedWithRanks.find((item) => item.city.continent === continent)).filter(Boolean);
   const points = visible.map((item) => ({ id: item.city.id, name: item.city.name, country: item.city.country, continent: item.city.continent, lat: item.city.lat, lng: item.city.lng, score: item.result.score, cost: item.result.estimatedCost, globalRank: item.globalRank, continentRank: item.continentRank, markerSize: Math.max(0.18, item.result.score / 210), markerColor: item.city.id === selected?.city.id ? "#bbf7d0" : item.result.score >= 86 ? "#22d3ee" : "#60a5fa" }));
-  const arcs = selected ? visible.filter((item) => item.city.id !== selected.city.id).slice(0, 12).map((item) => ({ from: selected.city.id, to: item.city.id, startLat: selected.city.lat, startLng: selected.city.lng, endLat: item.city.lat, endLng: item.city.lng })) : [];
+  const arcs = selected ? visible.filter((item) => item.city.id !== selected.city.id).slice(0, 12).map((item) => ({ from: selected.city.id, to: item.city.id, startLat: selected.city.lat, startLng: item.city.lng, endLat: item.city.lat, endLng: item.city.lng })) : [];
 
   return { metric: input.metric, topN: input.topN, continent: input.continent, totalCities: worldCities.length, visible, selected, leaders, points, arcs, generatedAt: nowIso(), scoringVersion: "world-score-v1" };
 }
@@ -186,7 +194,7 @@ export function scoreTemporaryPlaceService(input: TemporaryPlaceInput) {
     neighborhood: input.place.neighborhood ?? "Custom",
     ambience_tags: input.place.ambience_tags ?? [],
     feature_tags: input.place.feature_tags ?? [],
-    price_level: input.place.price_level ?? 2,
+    price_level: normalizePriceLevel(input.place.price_level),
     social_ambience_score: input.place.social_ambience_score ?? 70,
     evidence_confidence_score: input.place.evidence_confidence_score ?? 60,
     business_confirmed: input.place.business_confirmed ?? false,
@@ -199,6 +207,7 @@ export function scoreTemporaryPlaceService(input: TemporaryPlaceInput) {
 
 export function generateItineraryService(input: { intent: Intent; cityId: string; placeIds: string[]; eventIds: string[]; intensity: "low" | "balanced" | "high"; days: number }) {
   const city = [...worldCities, ...seedCities].find((item) => item.id === input.cityId) ?? worldCities[0];
+  const neighborhoods = city.best_neighborhoods.length ? city.best_neighborhoods : ["historic center"];
   const selectedPlaces = seedPlaces.filter((place) => input.placeIds.includes(place.id) || place.city_id === city.id).slice(0, Math.max(3, input.days));
   const selectedEvents = seedEvents.filter((event) => input.eventIds.includes(event.id) || event.city_id === city.id);
   const route = Array.from({ length: input.days }).map((_, index) => ({
@@ -206,7 +215,7 @@ export function generateItineraryService(input: { intent: Intent; cityId: string
     theme: index === 0 ? "arrival + orientation" : index % 3 === 1 ? "culture + food + social night" : index % 3 === 2 ? "recovery + opt-in networking" : "peak social night",
     blocks: [
       { time: "morning", type: "recovery/mobility", recommendation: index === 0 ? "arrival, check-in, low-friction neighborhood walk" : "slow breakfast and local orientation" },
-      { time: "afternoon", type: "culture", recommendation: city.best_neighborhoods[index % city.best_neighborhoods.length] ?? "historic center" },
+      { time: "afternoon", type: "culture", recommendation: neighborhoods[index % neighborhoods.length] },
       { time: "evening", type: "food/place", recommendation: selectedPlaces[index % Math.max(1, selectedPlaces.length)]?.name ?? "local dinner area" },
       { time: "night", type: "social opportunity", recommendation: selectedEvents[index % Math.max(1, selectedEvents.length)]?.name ?? "opt-in bar/event context" }
     ]
