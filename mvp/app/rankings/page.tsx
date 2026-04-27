@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { worldCities, continents, type Continent, type WorldCity } from "@/lib/world-data";
 import { getCityDemographicModel } from "@/lib/city-demographics";
+import { getCityTourismModel } from "@/lib/tourism-data";
 import { defaultIntent } from "@/lib/extraction";
 import { scoreCity } from "@/lib/scoring";
 import type { AvoidKey, FeatureKey, TravelStyle } from "@/lib/types";
@@ -18,7 +19,7 @@ const features: Array<{ label: string; value: FeatureKey }> = [
 const avoidances: Array<{ label: string; value: AvoidKey }> = [
   { label: "Too Crowded", value: "too_crowded" }, { label: "Tourist Traps", value: "tourist_traps" }, { label: "Expensive", value: "expensive" }, { label: "Car Dependent", value: "car_dependent" }, { label: "Dead Nightlife", value: "dead_nightlife" }
 ];
-const sortModes = ["overall", "cheapest", "nightlife", "history", "international", "gender-balance", "tourism-demand", "confidence"] as const;
+const sortModes = ["overall", "cheapest", "nightlife", "history", "international", "gender-balance", "tourism-demand", "tourism-index", "confidence"] as const;
 type SortMode = typeof sortModes[number];
 
 type Ranked = {
@@ -29,10 +30,10 @@ type Ranked = {
   seasonality: number;
   riskPenalty: number;
   demographics: ReturnType<typeof getCityDemographicModel>;
+  tourism: ReturnType<typeof getCityTourismModel>;
 };
 
 function toggle<T extends string>(list: T[], value: T) { return list.includes(value) ? list.filter((item) => item !== value) : [...list, value]; }
-function clamp(value: number) { return Math.max(0, Math.min(100, Math.round(value))); }
 function makeIntent(input: { budget: number; nights: number; month: string; styles: TravelStyle[]; features: FeatureKey[]; avoid: AvoidKey[] }) {
   const intent = defaultIntent();
   intent.budget.per_person_eur = input.budget;
@@ -73,17 +74,20 @@ export default function RankingsPage() {
       .map((city) => {
         const result = scoreCity(city, intent);
         const demographics = getCityDemographicModel(city);
-        return { city, score: result.score, cost: result.estimatedCost, featureFit: result.featureFit, seasonality: result.seasonality, riskPenalty: result.riskPenalty, demographics };
+        const tourism = getCityTourismModel(city);
+        const tourismAdjustment = Math.round((tourism.cityTourismDemandScore - 50) * 0.08 + (tourism.internationalTouristPressure - 50) * 0.05);
+        return { city, score: Math.max(0, Math.min(100, result.score + tourismAdjustment)), cost: result.estimatedCost, featureFit: result.featureFit, seasonality: result.seasonality, riskPenalty: result.riskPenalty, demographics, tourism };
       });
 
     return rows.sort((a, b) => {
       if (sortMode === "cheapest") return a.cost - b.cost;
       if (sortMode === "nightlife") return b.city.nightlife_score - a.city.nightlife_score;
       if (sortMode === "history") return b.city.history_score - a.city.history_score;
-      if (sortMode === "international") return b.demographics.internationalCrowdScore - a.demographics.internationalCrowdScore;
+      if (sortMode === "international") return b.tourism.internationalTouristPressure - a.tourism.internationalTouristPressure;
       if (sortMode === "gender-balance") return b.demographics.genderBalanceScore - a.demographics.genderBalanceScore;
-      if (sortMode === "tourism-demand") return b.demographics.touristVisitorShare - a.demographics.touristVisitorShare;
-      if (sortMode === "confidence") return b.demographics.confidenceScore - a.demographics.confidenceScore;
+      if (sortMode === "tourism-demand") return b.tourism.cityTourismDemandScore - a.tourism.cityTourismDemandScore;
+      if (sortMode === "tourism-index") return b.tourism.tourismNightsIndex - a.tourism.tourismNightsIndex;
+      if (sortMode === "confidence") return b.demographics.confidenceScore + (b.tourism.confidence === "high" ? 20 : b.tourism.confidence === "medium" ? 10 : 0) - (a.demographics.confidenceScore + (a.tourism.confidence === "high" ? 20 : a.tourism.confidence === "medium" ? 10 : 0));
       return b.score - a.score;
     });
   }, [query, continent, country, intent, sortMode]);
@@ -91,7 +95,7 @@ export default function RankingsPage() {
   const selected = ranked.find((row) => row.city.id === selectedId) ?? ranked[0];
 
   async function save(row: Ranked) {
-    const response = await fetch("/api/trips", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: `${row.city.name}, ${row.city.country}`, cityId: row.city.id, month, budgetLevel: budget <= 800 ? "Low" : budget <= 1300 ? "Medium" : "High", goal: styles.join("-") || "balanced", computedScore: row.score, notes: `Saved from /rankings. Sort: ${sortMode}. Cost €${row.cost}. Gender balance ${row.demographics.genderBalanceScore}. International score ${row.demographics.internationalCrowdScore}. Tourist share ${row.demographics.touristVisitorShare}.` }) });
+    const response = await fetch("/api/trips", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: `${row.city.name}, ${row.city.country}`, cityId: row.city.id, month, budgetLevel: budget <= 800 ? "Low" : budget <= 1300 ? "Medium" : "High", goal: styles.join("-") || "balanced", computedScore: row.score, notes: `Saved from /rankings. Sort: ${sortMode}. Cost €${row.cost}. Gender balance ${row.demographics.genderBalanceScore}. International pressure ${row.tourism.internationalTouristPressure}. Tourism demand ${row.tourism.cityTourismDemandScore}. Tourism source ${row.tourism.sourceLabel}.` }) });
     const json = await response.json();
     setSaveMessage(json?.data?.message ?? "Saved.");
   }
@@ -99,8 +103,8 @@ export default function RankingsPage() {
   return <main className="min-h-screen bg-slate-950 px-4 py-10 text-white">
     <section className="mx-auto max-w-7xl rounded-[2rem] border border-white/10 bg-white/[0.055] p-6 shadow-2xl shadow-sky-950/30 backdrop-blur-xl">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div><p className="text-xs font-black uppercase tracking-[0.22em] text-sky-200">Main ranking engine</p><h1 className="mt-3 text-4xl font-black tracking-[-0.055em] md:text-6xl">City rankings without the map</h1><p className="mt-4 max-w-3xl text-slate-300">All filters feed the same scoring pipeline as `/world`, plus country filtering, gender balance, nationality mix, tourist composition, and source confidence labels.</p></div>
-        <div className="flex gap-2"><Link className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300" href="/world">World map</Link><Link className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950" href="/trips">Trips</Link></div>
+        <div><p className="text-xs font-black uppercase tracking-[0.22em] text-sky-200">Main ranking engine</p><h1 className="mt-3 text-4xl font-black tracking-[-0.055em] md:text-6xl">City rankings without the map</h1><p className="mt-4 max-w-3xl text-slate-300">Filters feed scoring, gender/nationality estimates, and stored downloadable tourism baselines. Hotel/flight pricing remains intentionally excluded.</p></div>
+        <div className="flex gap-2"><Link className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300" href="/admin">Route console</Link><Link className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300" href="/world">World map</Link><Link className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950" href="/trips">Trips</Link></div>
       </div>
       <div className="mt-6 grid gap-3 md:grid-cols-4">
         <input className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none" value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search city/country/neighborhood" />
@@ -119,21 +123,23 @@ export default function RankingsPage() {
     <section className="mx-auto mt-6 grid max-w-7xl gap-6 lg:grid-cols-[1.5fr_.9fr]">
       <div className="grid gap-3">
         {ranked.slice(0, 60).map((row, index) => <button key={row.city.id} onClick={()=>setSelectedId(row.city.id)} className={`rounded-[1.5rem] border p-4 text-left backdrop-blur-xl transition ${selected?.city.id===row.city.id ? "border-sky-200 bg-sky-200/10" : "border-white/10 bg-white/[0.04] hover:border-white/25"}`}>
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">#{index+1} · {row.city.country} · {row.city.continent}</div><h2 className="mt-1 text-2xl font-black">{row.city.name}</h2><p className="mt-1 text-sm text-slate-400">€{row.cost} · {month} · {nights} nights · {row.demographics.sourceLabel}</p></div><div className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950">{row.score}/100</div></div>
-          <div className="mt-4 grid gap-2 md:grid-cols-5"><Mini label="Nightlife" value={row.city.nightlife_score}/><Mini label="Gender bal." value={row.demographics.genderBalanceScore}/><Mini label="Intl" value={row.demographics.internationalCrowdScore}/><Mini label="Tourist" value={row.demographics.touristVisitorShare}/><Mini label="Conf." value={row.demographics.confidenceScore}/></div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">#{index+1} · {row.city.country} · {row.city.continent}</div><h2 className="mt-1 text-2xl font-black">{row.city.name}</h2><p className="mt-1 text-sm text-slate-400">€{row.cost} · {month} · {nights} nights · {row.tourism.sourceLabel} · {row.tourism.release}</p></div><div className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950">{row.score}/100</div></div>
+          <div className="mt-4 grid gap-2 md:grid-cols-6"><Mini label="Nightlife" value={row.city.nightlife_score}/><Mini label="Gender bal." value={row.demographics.genderBalanceScore}/><Mini label="Intl" value={row.tourism.internationalTouristPressure}/><Mini label="Tourism" value={row.tourism.cityTourismDemandScore}/><Mini label="Nights idx" value={row.tourism.tourismNightsIndex}/><Mini label="Conf." value={row.demographics.confidenceScore}/></div>
         </button>)}
       </div>
       {selected ? <aside className="sticky top-4 h-fit rounded-[2rem] border border-white/10 bg-white/[0.055] p-5 backdrop-blur-xl">
         <h2 className="text-3xl font-black">{selected.city.name}</h2><p className="text-sm text-slate-400">{selected.city.country} · {selected.city.continent}</p>
-        <div className="mt-4 grid grid-cols-2 gap-3"><Metric label="Score" value={`${selected.score}`}/><Metric label="Cost" value={`€${selected.cost}`}/><Metric label="Local" value={`${selected.demographics.localResidentShare}%`}/><Metric label="Tourist" value={`${selected.demographics.touristVisitorShare}%`}/></div>
+        <div className="mt-4 grid grid-cols-2 gap-3"><Metric label="Score" value={`${selected.score}`}/><Metric label="Cost" value={`€${selected.cost}`}/><Metric label="Tourism" value={`${selected.tourism.cityTourismDemandScore}`}/><Metric label="Intl pressure" value={`${selected.tourism.internationalTouristPressure}`}/></div>
         <button onClick={()=>save(selected)} className="mt-4 w-full rounded-full bg-emerald-200 px-4 py-3 text-sm font-black text-slate-950">Save city</button>
+        <h3 className="mt-6 text-sm font-black uppercase tracking-[0.16em] text-sky-200">Stored tourism baseline</h3>
+        <div className="mt-2 rounded-2xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-300">Country baseline: {selected.tourism.tourismNightsIndex}/100<br/>International guests: {selected.tourism.internationalGuestShare}% · Domestic guests: {selected.tourism.domesticGuestShare}%<br/>Source: {selected.tourism.sourceLabel}<br/>Release: {selected.tourism.release} · confidence {selected.tourism.confidence}</div>
         <h3 className="mt-6 text-sm font-black uppercase tracking-[0.16em] text-sky-200">Gender mix</h3>
         <div className="mt-2 rounded-2xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-300">Nightlife: {selected.demographics.nightlifeGenderMix.male}% male · {selected.demographics.nightlifeGenderMix.female}% female · {selected.demographics.nightlifeGenderMix.unknown}% unknown<br/>General: {selected.demographics.generalGenderMix.male}% male · {selected.demographics.generalGenderMix.female}% female</div>
         <h3 className="mt-6 text-sm font-black uppercase tracking-[0.16em] text-sky-200">Tourist nationality mix</h3>
         <div className="mt-2 grid gap-2">{selected.demographics.touristNationalityMix.map((item)=><div key={item.label} className="rounded-2xl border border-white/10 bg-slate-950/50 p-3"><div className="flex justify-between text-sm"><span>{item.label}</span><b>{item.share}%</b></div><div className="mt-2 h-1.5 rounded-full bg-white/10"><div className="h-1.5 rounded-full bg-sky-200" style={{width:`${item.share}%`}}/></div></div>)}</div>
         <h3 className="mt-6 text-sm font-black uppercase tracking-[0.16em] text-sky-200">Resident / visitor composition</h3>
         <div className="mt-2 grid gap-2">{selected.demographics.nationalityMix.map((item)=><div key={item.label} className="flex justify-between rounded-xl bg-white/[0.04] px-3 py-2 text-sm"><span>{item.label}</span><b>{item.share}%</b></div>)}</div>
-        <p className="mt-4 text-xs leading-5 text-slate-500">{selected.demographics.note}</p>
+        <p className="mt-4 text-xs leading-5 text-slate-500">{selected.tourism.note}</p>
       </aside> : null}
     </section>
   </main>;
