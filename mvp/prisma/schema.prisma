@@ -103,9 +103,16 @@ model Place {
   businessConfirmed       Boolean           @default(false)
   goodFor                 String[]
   notes                   String
+  source                  String            @default("modeled")
+  confidence              String            @default("medium")
+  releaseId               String?
+  ingestedAt              DateTime?
   images                  PlaceImage[]
   aiTags                  PlaceAiTag[]
   businessProfiles        BusinessProfile[]
+
+  @@index([cityId])
+  @@index([type])
 }
 
 model PlaceFeature {
@@ -273,6 +280,160 @@ model PriceSnapshot {
 
   @@index([cityId])
   @@index([priceType])
+}
+
+model VenueDensitySnapshot {
+  id          String   @id @default(cuid())
+  cityId      String
+  category    String
+  count       Int
+  densityKm2  Float?
+  source      String   @default("open-bulk")
+  confidence  String   @default("medium")
+  releaseId   String?
+  ingestedAt  DateTime @default(now())
+  payload     Json?
+
+  @@index([cityId])
+  @@index([category])
+}
+
+model EventSnapshot {
+  id          String   @id @default(cuid())
+  cityId      String
+  eventDate   DateTime?
+  eventType   String
+  volume      Int      @default(0)
+  toneScore   Float?
+  source      String   @default("open-bulk")
+  confidence  String   @default("medium")
+  releaseId   String?
+  ingestedAt  DateTime @default(now())
+  payload     Json?
+
+  @@index([cityId])
+  @@index([eventType])
+}
+
+model DemandPressureSnapshot {
+  id          String   @id @default(cuid())
+  cityId      String
+  pressureDate DateTime
+  score       Float
+  components  Json
+  source      String   @default("modeled")
+  confidence  String   @default("medium")
+  releaseId   String?
+  ingestedAt  DateTime @default(now())
+
+  @@index([cityId])
+  @@index([pressureDate])
+}
+
+model NewsSnapshot {
+  id          String   @id @default(cuid())
+  cityId      String
+  newsDate    DateTime
+  articleCount Int     @default(0)
+  toneScore   Float?
+  themeDistribution Json?
+  source      String   @default("open-live")
+  confidence  String   @default("medium")
+  releaseId   String?
+  ingestedAt  DateTime @default(now())
+  payload     Json?
+
+  @@index([cityId])
+  @@index([newsDate])
+}
+
+model WeatherSnapshot {
+  id          String   @id @default(cuid())
+  cityId      String
+  weatherDate DateTime
+  temperatureAvg Float?
+  precipitationProbability Float?
+  comfortScore Float?
+  source      String   @default("open-live")
+  confidence  String   @default("high")
+  releaseId   String?
+  ingestedAt  DateTime @default(now())
+  payload     Json?
+
+  @@index([cityId])
+  @@index([weatherDate])
+}
+
+model DemographicSnapshot {
+  id          String   @id @default(cuid())
+  cityId      String?
+  countryCode String?
+  metric      String
+  value       Float?
+  period      String?
+  source      String   @default("official")
+  confidence  String   @default("high")
+  releaseId   String?
+  ingestedAt  DateTime @default(now())
+  payload     Json?
+
+  @@index([cityId])
+  @@index([countryCode])
+  @@index([metric])
+}
+
+model TouristStatSnapshot {
+  id          String   @id @default(cuid())
+  cityId      String?
+  regionCode  String?
+  metric      String
+  value       Float?
+  period      String?
+  source      String   @default("official")
+  confidence  String   @default("medium")
+  releaseId   String?
+  ingestedAt  DateTime @default(now())
+  payload     Json?
+
+  @@index([cityId])
+  @@index([regionCode])
+  @@index([metric])
+}
+
+model FlightPriceSnapshot {
+  id          String   @id @default(cuid())
+  origin      String
+  destination String
+  departDate  DateTime
+  returnDate  DateTime?
+  value       Float?
+  currency    String   @default("EUR")
+  source      String   @default("commercial")
+  confidence  String   @default("medium")
+  releaseId   String?
+  ingestedAt  DateTime @default(now())
+  payload     Json?
+
+  @@index([origin])
+  @@index([destination])
+  @@index([departDate])
+}
+
+model HotelPriceSnapshot {
+  id          String   @id @default(cuid())
+  cityId      String
+  checkIn     DateTime
+  checkOut    DateTime
+  value       Float?
+  currency    String   @default("EUR")
+  source      String   @default("commercial")
+  confidence  String   @default("medium")
+  releaseId   String?
+  ingestedAt  DateTime @default(now())
+  payload     Json?
+
+  @@index([cityId])
+  @@index([checkIn])
 }
 
 model IngestionRun {
