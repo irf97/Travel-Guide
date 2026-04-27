@@ -1,4 +1,5 @@
 import { nowIso } from "./api";
+import { analyzeImageSafely } from "./openai-adapter";
 
 export function businessProfileService(input: Record<string, any>) {
   const profile = {
@@ -25,8 +26,9 @@ export function businessProfileService(input: Record<string, any>) {
   return { profile, persisted: false, persistence: "Supabase/Prisma adapter ready; no database keys active in this deploy.", generatedAt: nowIso() };
 }
 
-export function imageAnalyzeService(input: { imageUrls: string[]; filenameHints: string[]; consentConfirmed: boolean; useAi?: boolean }) {
+export async function imageAnalyzeService(input: { imageUrls: string[]; filenameHints: string[]; consentConfirmed: boolean; useAi?: boolean }) {
   const filenames = input.filenameHints.join(" ").toLowerCase();
+  const adapter = await analyzeImageSafely({ imageUrls: input.imageUrls, useAi: input.useAi });
   const tags = {
     place_type: filenames.includes("cafe") ? ["cafe", "third_space"] : filenames.includes("bar") ? ["bar"] : ["venue"],
     ambience: [filenames.includes("night") ? "night-energy" : "daytime", filenames.includes("terrace") ? "terrace" : "indoor-unknown"],
@@ -41,13 +43,15 @@ export function imageAnalyzeService(input: { imageUrls: string[]; filenameHints:
     confidence: {
       venue_level_only: 0.9,
       no_identity_analysis: 1,
-      consent_confirmed: input.consentConfirmed ? 1 : 0
+      consent_confirmed: input.consentConfirmed ? 1 : 0,
+      adapter_confidence: adapter.confidence
     }
   };
   return {
     tags,
+    adapter,
     safety: ["No private individual identification", "No attractiveness ranking", "No sensitive trait inference", "Venue-level tags only"],
-    source: process.env.OPENAI_API_KEY && input.useAi ? "openai-ready-simulated-safe-output" : "local-simulated-safe-output",
+    source: adapter.provider,
     generatedAt: nowIso()
   };
 }
