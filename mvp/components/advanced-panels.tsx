@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
-import { Button, Card, Chip, CollapsibleJson, FieldLabel, MetricBar, SectionHeader, SoftCard, StatPill } from "@/components/ui";
+import { Card, Chip, CollapsibleJson, FieldLabel, MetricBar, SectionHeader, SoftCard, StatPill } from "@/components/ui";
 
 type RankedCity = {
   city: {
@@ -66,37 +66,23 @@ export function DecisionBoardPanel({ rankedCities }: { rankedCities: RankedCity[
 
   return (
     <section className="py-10">
-      <SectionHeader
-        eyebrow="Decision board"
-        title="Group decision cockpit"
-        body="A practical layer for group trips: tune what the group actually values and watch the recommended city shift. This is not another list; it is a decision instrument."
-      />
+      <SectionHeader eyebrow="Decision board" title="Group decision cockpit" body="Tune what the group actually values and watch the recommended city shift. This turns the group argument into visible tradeoffs." />
       <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         <Card>
           <h2 className="text-2xl font-black text-white">Group priorities</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">Use this when five people all want slightly different things. It turns the group argument into visible tradeoffs.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-400">Use this when five people want slightly different things.</p>
           <div className="mt-5 grid gap-4">
             {(Object.entries(weights) as [keyof typeof weights, number][]).map(([key, value]) => (
               <label key={key} className="grid gap-2">
                 <div className="flex items-center justify-between text-sm font-bold text-slate-300"><span>{labelize(key)}</span><span>{value}</span></div>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={value}
-                  className="accent-sky-200"
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => setWeights((prev) => ({ ...prev, [key]: Number(event.target.value) }))}
-                />
+                <input type="range" min={0} max={100} value={value} className="accent-sky-200" onChange={(event: ChangeEvent<HTMLInputElement>) => setWeights((prev) => ({ ...prev, [key]: Number(event.target.value) }))} />
               </label>
             ))}
           </div>
         </Card>
         <Card>
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-black text-white">Current winner</h2>
-              <p className="mt-1 text-sm text-slate-400">Adjusted for the group’s live priorities.</p>
-            </div>
+            <div><h2 className="text-2xl font-black text-white">Current winner</h2><p className="mt-1 text-sm text-slate-400">Adjusted for the group’s live priorities.</p></div>
             <Chip tone="good">{winner?.adjusted ?? 0}/100</Chip>
           </div>
           <div className="mt-5 grid gap-3 md:grid-cols-3">
@@ -104,9 +90,7 @@ export function DecisionBoardPanel({ rankedCities }: { rankedCities: RankedCity[
             <StatPill label="Cost" value={`€${winner?.result.estimatedCost ?? 0}`} note="estimated pp" />
             <StatPill label="Best zone" value={winner?.city.best_neighborhoods[0] ?? "—"} note="starting neighborhood" />
           </div>
-          <div className="mt-5 grid gap-3">
-            {board.slice(0, 5).map((item) => <MetricBar key={item.city.id} label={item.city.name} score={item.adjusted} />)}
-          </div>
+          <div className="mt-5 grid gap-3">{board.slice(0, 5).map((item) => <MetricBar key={item.city.id} label={item.city.name} score={item.adjusted} />)}</div>
         </Card>
       </div>
     </section>
@@ -121,7 +105,7 @@ export function OpportunityRadarPanel({ rankedCities, rankedPlaces }: { rankedCi
 
   return (
     <section className="py-10">
-      <SectionHeader eyebrow="Opportunity radar" title="Where the trip has the highest probability of working" body="A founder-facing synthesis panel: it compresses destination, place, evidence, and social-opportunity signals into a decision narrative." />
+      <SectionHeader eyebrow="Opportunity radar" title="Where the trip has the highest probability of working" body="A synthesis panel that compresses destination, place, evidence, and social-opportunity signals into a decision narrative." />
       <div className="grid gap-4 md:grid-cols-4">
         <StatPill label="Best destination" value={topCity?.name ?? "—"} note={topCity?.best_neighborhoods.slice(0, 2).join(" + ") ?? ""} />
         <StatPill label="Strong places" value={topPlaces.length} note="above current threshold" />
@@ -131,9 +115,7 @@ export function OpportunityRadarPanel({ rankedCities, rankedPlaces }: { rankedCi
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <Card>
           <h2 className="text-2xl font-black text-white">Trip thesis</h2>
-          <p className="mt-3 leading-7 text-slate-300">
-            Start from <strong className="text-white">{topCity?.best_neighborhoods[0] ?? "the top neighborhood"}</strong>, anchor the trip around two high-confidence places, then add one opt-in social context per day. Avoid trying to optimize every hour.
-          </p>
+          <p className="mt-3 leading-7 text-slate-300">Start from <strong className="text-white">{topCity?.best_neighborhoods[0] ?? "the top neighborhood"}</strong>, anchor the trip around two high-confidence places, then add one opt-in social context per day. Avoid trying to optimize every hour.</p>
           <div className="mt-4 flex flex-wrap gap-2">{topPlaces.flatMap((item) => item.place.feature_tags).slice(0, 10).map((tag) => <Chip key={tag}>{labelize(tag)}</Chip>)}</div>
         </Card>
         <Card>
@@ -166,16 +148,8 @@ export function RouteGeneratorPanel({ rankedCities, rankedPlaces }: { rankedCiti
       <div className="grid gap-4 md:grid-cols-2">
         {days.map((day, index) => (
           <Card key={day.theme}>
-            <div className="flex items-start justify-between gap-3">
-              <div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Day {index + 1}</p><h2 className="mt-1 text-2xl font-black text-white">{day.theme}</h2></div>
-              <Chip tone={index === 3 ? "warn" : "good"}>{index === 3 ? "high intensity" : "balanced"}</Chip>
-            </div>
-            <div className="mt-5 grid gap-3">
-              <RouteBlock label="Morning" value={day.morning} />
-              <RouteBlock label="Afternoon" value={day.afternoon} />
-              <RouteBlock label="Evening" value={day.evening} />
-              <RouteBlock label="Night" value={day.night} />
-            </div>
+            <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Day {index + 1}</p><h2 className="mt-1 text-2xl font-black text-white">{day.theme}</h2></div><Chip tone={index === 3 ? "warn" : "good"}>{index === 3 ? "high intensity" : "balanced"}</Chip></div>
+            <div className="mt-5 grid gap-3"><RouteBlock label="Morning" value={day.morning} /><RouteBlock label="Afternoon" value={day.afternoon} /><RouteBlock label="Evening" value={day.evening} /><RouteBlock label="Night" value={day.night} /></div>
           </Card>
         ))}
       </div>
@@ -198,7 +172,7 @@ export function BusinessPortalPanel() {
 
   return (
     <section className="py-10">
-      <SectionHeader eyebrow="Business reality layer" title="Business Portal / Ambience Confirmation" body="This is where businesses stop saying vague things like ‘cozy’ and start confirming the social reality of their place." />
+      <SectionHeader eyebrow="Business reality layer" title="Business Portal / Ambience Confirmation" body="Businesses stop saying vague things like ‘cozy’ and start confirming the social reality of their place." />
       <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         <Card>
           <div className="grid gap-3">
@@ -207,9 +181,7 @@ export function BusinessPortalPanel() {
             <MetricInput label="Social energy" value={profile.social} onChange={(value) => setProfile({ ...profile, social: value })} />
             <MetricInput label="Quietness" value={profile.quiet} onChange={(value) => setProfile({ ...profile, quiet: value })} />
             <MetricInput label="Laptop friendliness" value={profile.laptop} onChange={(value) => setProfile({ ...profile, laptop: value })} />
-            <div className="grid gap-2 sm:grid-cols-2">
-              {(["groups", "sports", "matcha", "seafood"] as const).map((key) => <label key={key} className="rounded-xl border border-white/10 bg-white/[0.045] p-3 text-sm text-slate-300"><input type="checkbox" className="mr-2 accent-sky-200" checked={Boolean(profile[key])} onChange={(event) => setProfile({ ...profile, [key]: event.target.checked })} />{labelize(key)}</label>)}
-            </div>
+            <div className="grid gap-2 sm:grid-cols-2">{(["groups", "sports", "matcha", "seafood"] as const).map((key) => <label key={key} className="rounded-xl border border-white/10 bg-white/[0.045] p-3 text-sm text-slate-300"><input type="checkbox" className="mr-2 accent-sky-200" checked={Boolean(profile[key])} onChange={(event) => setProfile({ ...profile, [key]: event.target.checked })} />{labelize(key)}</label>)}</div>
           </div>
         </Card>
         <Card>
@@ -266,4 +238,3 @@ export function NetworkingPanel() {
     </section>
   );
 }
-"}}() jriamanitra? // function name? invalid? Need handle JSON string carefully. I see extra weird at end `
