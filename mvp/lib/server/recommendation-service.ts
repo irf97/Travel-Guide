@@ -16,6 +16,30 @@ function cityWithDefaults(city: City, index = 0) {
   };
 }
 
+type TemporaryCityInput = {
+  intent: Intent;
+  city: Partial<City> & {
+    id?: string;
+    name: string;
+    country: string;
+    continent?: Continent;
+    lat?: number;
+    lng?: number;
+    types?: string[];
+    base_cost_per_person?: number;
+    average_daily_cost?: number;
+    social_density_score?: number;
+    nightlife_score?: number;
+    history_score?: number;
+    food_culture_score?: number;
+    mobility_score?: number;
+    sea_access?: boolean;
+    best_neighborhoods?: string[];
+    risk_flags?: string[];
+    notes?: string;
+  };
+};
+
 export async function extractIntentService(input: {
   text: string;
   groupSize: number;
@@ -107,9 +131,29 @@ export function recommendPlacesService(input: { intent: Intent; cityId?: string;
   return { ranked, count: ranked.length, generatedAt: nowIso(), scoringVersion: "place-score-v1" };
 }
 
-export function scoreTemporaryCityService(input: { intent: Intent; city: Partial<WorldCity> & City & { continent?: Continent; lat?: number; lng?: number } }) {
-  const city = { ...input.city, nationality_mix_context: input.city.nationality_mix_context ?? "User-provided temporary city.", notes: input.city.notes ?? "Temporary user-estimated city.", crowd_pressure_by_month: input.city.crowd_pressure_by_month ?? { July: 70 }, seasonality_by_month: input.city.seasonality_by_month ?? { July: 75 } } as City;
-  return { city, result: scoreCity(city, input.intent), generatedAt: nowIso(), persisted: false };
+export function scoreTemporaryCityService(input: TemporaryCityInput) {
+  const city: City = {
+    id: input.city.id ?? `temp_${input.city.name.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`,
+    name: input.city.name,
+    country: input.city.country,
+    types: input.city.types ?? [],
+    base_cost_per_person: input.city.base_cost_per_person ?? 800,
+    average_daily_cost: input.city.average_daily_cost ?? 60,
+    social_density_score: input.city.social_density_score ?? 75,
+    nightlife_score: input.city.nightlife_score ?? 75,
+    history_score: input.city.history_score ?? 75,
+    food_culture_score: input.city.food_culture_score ?? 75,
+    mobility_score: input.city.mobility_score ?? 75,
+    sea_access: input.city.sea_access ?? false,
+    best_neighborhoods: input.city.best_neighborhoods ?? [],
+    risk_flags: input.city.risk_flags ?? [],
+    nationality_mix_context: input.city.nationality_mix_context ?? "User-provided temporary city.",
+    crowd_pressure_by_month: input.city.crowd_pressure_by_month ?? { July: 70 },
+    seasonality_by_month: input.city.seasonality_by_month ?? { July: 75 },
+    notes: input.city.notes ?? "Temporary user-estimated city."
+  };
+
+  return { city: { ...city, continent: input.city.continent, lat: input.city.lat, lng: input.city.lng }, result: scoreCity(city, input.intent), generatedAt: nowIso(), persisted: false };
 }
 
 export function scoreTemporaryPlaceService(input: { intent: Intent; place: Place; cityScore: number }) {
