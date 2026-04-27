@@ -11,13 +11,52 @@ type TripRow = {
   goal: string | null;
   computedScore: number | null;
   notes: string | null;
-  createdAt: Date | string;
+  createdAt: string;
 };
 
+type TripsPageResult = {
+  status: "live" | "fallback";
+  trips: TripRow[];
+};
+
+function parseTitleMetadata(title: string) {
+  const parts = title.split(" | ");
+  const meta = Object.fromEntries(parts.slice(1).map((part) => {
+    const [key, ...rest] = part.split(":");
+    return [key, rest.join(":")];
+  }));
+
+  return {
+    displayTitle: parts[0] ?? title,
+    cityId: meta.city ?? null,
+    month: meta.month ?? null,
+    computedScore: meta.score ? Number(meta.score) : null
+  };
+}
+
 export default async function TripsPage() {
-  const result = await withDb(
-    async (db) => ({ status: "live" as const, trips: await db.trip.findMany({ orderBy: { createdAt: "desc" }, take: 50 }) }),
-    () => ({ status: "fallback" as const, trips: [] as TripRow[] })
+  const result = await withDb<TripsPageResult>(
+    async (db) => {
+      const trips = await db.trip.findMany({ orderBy: { createdAt: "desc" }, take: 50 });
+      return {
+        status: "live",
+        trips: trips.map((trip) => {
+          const parsed = parseTitleMetadata(trip.title);
+          return {
+            id: trip.id,
+            title: parsed.displayTitle,
+            cityId: parsed.cityId,
+            month: parsed.month,
+            budgetLevel: null,
+            goal: null,
+            computedScore: Number.isFinite(parsed.computedScore) ? parsed.computedScore : null,
+            notes: "Saved in Prisma-safe compatibility mode. Rich metadata persists after Prisma migration/generation.",
+            createdAt: trip.createdAt instanceof Date ? trip.createdAt.toISOString() : String(trip.createdAt)
+          };
+        })
+      };
+    },
+    () => ({ status: "fallback", trips: [] })
   );
 
   return (
