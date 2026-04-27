@@ -1,16 +1,13 @@
-import { NextResponse } from "next/server";
-import { cities } from "@/lib/seed";
-import { defaultIntent } from "@/lib/extraction";
-import { scoreCity } from "@/lib/scoring";
-import { intentSchema } from "@/lib/schemas";
+import { handleError, ok, parseJson } from "@/lib/server/api";
+import { cityRecommendRequestSchema } from "@/lib/schemas/backend";
+import { recommendCitiesService } from "@/lib/server/recommendation-service";
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({}));
-  const intent = intentSchema.safeParse(body.intent).success ? intentSchema.parse(body.intent) : defaultIntent();
-
-  const recommendations = cities
-    .map((city) => ({ city, result: scoreCity(city, intent) }))
-    .sort((a, b) => b.result.score - a.result.score);
-
-  return NextResponse.json({ recommendations, scoring: "transparent-v1" });
+  try {
+    const body = await parseJson(request, {});
+    const input = cityRecommendRequestSchema.parse(body);
+    return ok(recommendCitiesService(input));
+  } catch (error) {
+    return handleError(error);
+  }
 }
