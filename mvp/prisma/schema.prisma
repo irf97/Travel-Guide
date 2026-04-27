@@ -42,6 +42,19 @@ model Trip {
   @@index([visitorKey])
 }
 
+model MemoryEvent {
+  id         String   @id @default(cuid())
+  visitorKey String
+  eventType  String
+  cityId     String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([visitorKey])
+  @@index([eventType])
+  @@index([cityId])
+}
+
 model PreferenceProfile {
   id        String   @id @default(cuid())
   rawInput  String
@@ -245,7 +258,7 @@ model RawSnapshot {
   cityId    String?
   city      City?    @relation(fields: [cityId], references: [id])
   payload   Json?
-  error     String?
+  error     Text?
   fetchedAt DateTime @default(now())
 
   @@index([source])
