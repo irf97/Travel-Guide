@@ -1,7 +1,14 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { Card, Chip, GhostButton, SectionHeader, SoftCard } from "@/components/ui";
 
-const links = [
+type PortalLink = {
+  href: Route;
+  title: string;
+  body: string;
+};
+
+const links: PortalLink[] = [
   { href: "/", title: "Main Product App", body: "Traveler intake, destination intelligence, place matching, cost model, safety, and architecture." },
   { href: "/world", title: "World Intelligence", body: "Immersive Earth interface with continent rankings, Top 10/25/50/100, filters, and city drilldowns." },
   { href: "/lab", title: "Advanced Product Lab", body: "Decision cockpit, opportunity radar, social route generator, image definer, and business ambience builder." },
