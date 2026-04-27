@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Chip, MetricBar, StatPill } from "@/components/ui";
 import { continents, type Continent, type WorldCity } from "@/lib/world-data";
@@ -109,7 +110,7 @@ export function ImmersiveWorld({ cities }: { cities: WorldCity[] }) {
   );
 }
 
-function Control({ title, children }: { title: string; children: React.ReactNode }) { return <div className={styles.control}><p className={styles.controlTitle}>{title}</p>{children}</div>; }
+function Control({ title, children }: { title: string; children: ReactNode }) { return <div className={styles.control}><p className={styles.controlTitle}>{title}</p>{children}</div>; }
 function ButtonGrid({ values, active, onSelect, prefix = "", formatter }: { values: Array<string | number>; active: string | number; onSelect: (v: string | number) => void; prefix?: string; formatter?: (v: string | number) => string }) { return <div className="flex flex-wrap gap-2">{values.map((v) => <button key={String(v)} onClick={() => onSelect(v)} className={`${styles.filter} ${active === v ? styles.filterActive : ""}`}>{prefix}{formatter ? formatter(v) : String(v)}</button>)}</div>; }
 
 function Globe({ ranked, metric, rotation, selectedId, onSelect }: { ranked: Ranked[]; metric: Metric; rotation: number; selectedId: string | null; onSelect: (id: string) => void }) {
