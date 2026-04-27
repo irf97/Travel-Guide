@@ -1,0 +1,35 @@
+{
+  "version": "2026-04-27.seed",
+  "source": "Eurostat tourism occupancy datasets",
+  "source_url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/tour_occ_ninat",
+  "dataset_codes": ["tour_occ_ninat", "tour_occ_nim"],
+  "license": "Eurostat reuse policy / CC BY style attribution where applicable",
+  "last_downloaded_at": null,
+  "status": "seed_until_downloaded",
+  "note": "Run `npm run tourism:download` from mvp/ to replace this seed with a downloaded Eurostat snapshot. Runtime reads this local file, not Eurostat directly.",
+  "eu_2024": {
+    "tourism_nights_total": 2990000000,
+    "domestic_guest_share": 52,
+    "international_guest_share": 48,
+    "source_label": "Eurostat early estimate 2024",
+    "confidence": "high"
+  },
+  "countries": {
+    "Spain": { "geo": "ES", "tourism_nights_index": 96, "international_guest_share": 62, "domestic_guest_share": 38, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Portugal": { "geo": "PT", "tourism_nights_index": 82, "international_guest_share": 64, "domestic_guest_share": 36, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Italy": { "geo": "IT", "tourism_nights_index": 94, "international_guest_share": 51, "domestic_guest_share": 49, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "France": { "geo": "FR", "tourism_nights_index": 91, "international_guest_share": 35, "domestic_guest_share": 65, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Netherlands": { "geo": "NL", "tourism_nights_index": 78, "international_guest_share": 44, "domestic_guest_share": 56, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Germany": { "geo": "DE", "tourism_nights_index": 85, "international_guest_share": 20, "domestic_guest_share": 80, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Austria": { "geo": "AT", "tourism_nights_index": 80, "international_guest_share": 72, "domestic_guest_share": 28, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Denmark": { "geo": "DK", "tourism_nights_index": 69, "international_guest_share": 42, "domestic_guest_share": 58, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Sweden": { "geo": "SE", "tourism_nights_index": 68, "international_guest_share": 25, "domestic_guest_share": 75, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Ireland": { "geo": "IE", "tourism_nights_index": 66, "international_guest_share": 55, "domestic_guest_share": 45, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Croatia": { "geo": "HR", "tourism_nights_index": 88, "international_guest_share": 91, "domestic_guest_share": 9, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Greece": { "geo": "EL", "tourism_nights_index": 86, "international_guest_share": 80, "domestic_guest_share": 20, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Czechia": { "geo": "CZ", "tourism_nights_index": 70, "international_guest_share": 48, "domestic_guest_share": 52, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Hungary": { "geo": "HU", "tourism_nights_index": 66, "international_guest_share": 48, "domestic_guest_share": 52, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Poland": { "geo": "PL", "tourism_nights_index": 72, "international_guest_share": 20, "domestic_guest_share": 80, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" },
+    "Slovenia": { "geo": "SI", "tourism_nights_index": 63, "international_guest_share": 70, "domestic_guest_share": 30, "source_label": "Eurostat downloadable snapshot seed", "confidence": "medium" }
+  }
+}
