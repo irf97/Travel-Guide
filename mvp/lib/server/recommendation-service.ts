@@ -40,6 +40,26 @@ type TemporaryCityInput = {
   };
 };
 
+type TemporaryPlaceInput = {
+  intent: Intent;
+  cityScore: number;
+  place: Partial<Place> & {
+    id?: string;
+    name: string;
+    type: string;
+    city_id: string;
+    neighborhood?: string;
+    ambience_tags?: string[];
+    feature_tags?: Place["feature_tags"];
+    price_level?: Place["price_level"];
+    social_ambience_score?: number;
+    evidence_confidence_score?: number;
+    business_confirmed?: boolean;
+    good_for?: string[];
+    notes?: string;
+  };
+};
+
 export async function extractIntentService(input: {
   text: string;
   groupSize: number;
@@ -156,8 +176,25 @@ export function scoreTemporaryCityService(input: TemporaryCityInput) {
   return { city: { ...city, continent: input.city.continent, lat: input.city.lat, lng: input.city.lng }, result: scoreCity(city, input.intent), generatedAt: nowIso(), persisted: false };
 }
 
-export function scoreTemporaryPlaceService(input: { intent: Intent; place: Place; cityScore: number }) {
-  return { place: input.place, result: scorePlace(input.place, input.intent, input.cityScore), generatedAt: nowIso(), persisted: false };
+export function scoreTemporaryPlaceService(input: TemporaryPlaceInput) {
+  const safeSlug = input.place.name.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+  const place: Place = {
+    id: input.place.id ?? `temp_place_${safeSlug}`,
+    name: input.place.name,
+    type: input.place.type,
+    city_id: input.place.city_id,
+    neighborhood: input.place.neighborhood ?? "Custom",
+    ambience_tags: input.place.ambience_tags ?? [],
+    feature_tags: input.place.feature_tags ?? [],
+    price_level: input.place.price_level ?? 2,
+    social_ambience_score: input.place.social_ambience_score ?? 70,
+    evidence_confidence_score: input.place.evidence_confidence_score ?? 60,
+    business_confirmed: input.place.business_confirmed ?? false,
+    good_for: input.place.good_for ?? [],
+    notes: input.place.notes ?? "Temporary user-estimated place."
+  };
+
+  return { place, result: scorePlace(place, input.intent, input.cityScore), generatedAt: nowIso(), persisted: false };
 }
 
 export function generateItineraryService(input: { intent: Intent; cityId: string; placeIds: string[]; eventIds: string[]; intensity: "low" | "balanced" | "high"; days: number }) {
