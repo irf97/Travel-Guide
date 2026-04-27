@@ -1,5 +1,6 @@
 import { handleError, ok, parseJson } from "@/lib/server/api";
 import { withDb } from "@/lib/server/db";
+import { getVisitorKey } from "@/lib/server/visitor-memory";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -30,12 +31,14 @@ type TripView = {
 
 type TripsGetResponse = {
   status: "live" | "fallback";
+  visitorScoped: boolean;
   trips: TripView[];
   message: string;
 };
 
 type TripWriteResponse = {
   status: "live" | "fallback";
+  visitorScoped: boolean;
   persisted: boolean;
   trip: TripView;
   message: string;
@@ -59,14 +62,15 @@ function tripViewFromDb(trip: { id: string; title: string; cityId: string | null
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const visitorKey = getVisitorKey(request.headers);
     return ok(await withDb<TripsGetResponse>(
       async (db) => {
-        const trips = await db.trip.findMany({ orderBy: { createdAt: "desc" }, take: 50 });
-        return { status: "live", trips: trips.map(tripViewFromDb), message: "Trips loaded from database." };
+        const trips = await db.trip.findMany({ where: { visitorKey }, orderBy: { createdAt: "desc" }, take: 50 });
+        return { status: "live", visitorScoped: true, trips: trips.map(tripViewFromDb), message: "Trips loaded for this visitor." };
       },
-      () => ({ status: "fallback", trips: [], message: "DATABASE_URL is not configured; saved trips are not persisted yet." })
+      () => ({ status: "fallback", visitorScoped: true, trips: [], message: "DATABASE_URL is not configured; saved trips are not persisted yet." })
     ));
   } catch (error) {
     return handleError(error);
@@ -75,12 +79,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const visitorKey = getVisitorKey(request.headers);
     const body = await parseJson(request, {});
     const input = tripSchema.parse(body);
     return ok(await withDb<TripWriteResponse>(
       async (db) => {
         const created = await db.trip.create({
           data: {
+            visitorKey,
             title: input.title,
             cityId: input.cityId,
             month: input.month,
@@ -90,9 +96,9 @@ export async function POST(request: Request) {
             notes: input.notes
           }
         });
-        return { status: "live", persisted: true, trip: tripViewFromDb(created), message: "Trip saved to database with full metadata." };
+        return { status: "live", visitorScoped: true, persisted: true, trip: tripViewFromDb(created), message: "Trip saved to this visitor memory." };
       },
-      () => ({ status: "fallback", persisted: false, trip: fallbackTrip(input), message: "DATABASE_URL is not configured; this trip was not persisted." })
+      () => ({ status: "fallback", visitorScoped: true, persisted: false, trip: fallbackTrip(input), message: "DATABASE_URL is not configured; this trip was not persisted." })
     ));
   } catch (error) {
     return handleError(error);
@@ -101,13 +107,14 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const visitorKey = getVisitorKey(request.headers);
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
     if (!id) return ok({ status: "fallback", deleted: false, message: "Missing id." }, { status: 400 });
     return ok(await withDb(
       async (db) => {
-        await db.trip.delete({ where: { id } });
-        return { status: "live", deleted: true, id, message: "Trip deleted from database." };
+        await db.trip.deleteMany({ where: { id, visitorKey } });
+        return { status: "live", deleted: true, id, message: "Trip deleted from this visitor memory." };
       },
       () => ({ status: "fallback", deleted: false, id, message: "DATABASE_URL is not configured; no persisted trip was deleted." })
     ));
