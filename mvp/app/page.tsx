@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { Button, Card, Chip, CollapsibleJson, FieldLabel, GhostButton, MetricBar, ScoreBar, SectionHeader, SoftCard, StatPill } from "@/components/ui";
 import { cities, events, months, places } from "@/lib/seed";
 import { extractIntentLocally } from "@/lib/extraction";
@@ -10,6 +11,26 @@ import { formatEuro } from "@/lib/utils";
 
 const pages = ["Overview", "Traveler Intake", "Destinations", "Places", "Business Portal", "Image Definer", "Networking", "Itinerary", "Cost Model", "Safety", "Architecture"] as const;
 type Page = (typeof pages)[number];
+
+type TravelerIntakeProps = {
+  note: string;
+  setNote: Dispatch<SetStateAction<string>>;
+  groupSize: number;
+  setGroupSize: Dispatch<SetStateAction<number>>;
+  ageRange: string;
+  setAgeRange: Dispatch<SetStateAction<string>>;
+  budget: number;
+  setBudget: Dispatch<SetStateAction<number>>;
+  nights: number;
+  setNights: Dispatch<SetStateAction<number>>;
+  month: string;
+  setMonth: Dispatch<SetStateAction<string>>;
+  style: TravelStyle;
+  setStyle: Dispatch<SetStateAction<TravelStyle>>;
+  intent: Intent;
+  setIntent: Dispatch<SetStateAction<Intent>>;
+  runExtraction: () => void;
+};
 
 const featureLabels: Record<FeatureKey, string> = {
   sea: "Sea",
@@ -118,7 +139,7 @@ function Overview({ setPage }: { setPage: (page: Page) => void }) {
   );
 }
 
-function TravelerIntake(props: any) {
+function TravelerIntake(props: TravelerIntakeProps) {
   const { intent, setIntent } = props;
   const active = activeFeatureKeys(intent);
   const avoid = activeAvoid(intent);
@@ -135,7 +156,7 @@ function TravelerIntake(props: any) {
             <LabeledInput label="Budget pp" type="number" value={props.budget} onChange={(v) => props.setBudget(Number(v))} />
             <LabeledInput label="Nights" type="number" value={props.nights} onChange={(v) => props.setNights(Number(v))} />
             <div><FieldLabel>Month</FieldLabel><select className="w-full rounded-xl border border-white/10 bg-white/[0.065] p-3 text-slate-100" value={props.month} onChange={(e) => props.setMonth(e.target.value)}>{months.map((m) => <option key={m}>{m}</option>)}</select></div>
-            <div><FieldLabel>Style</FieldLabel><select className="w-full rounded-xl border border-white/10 bg-white/[0.065] p-3 text-slate-100" value={props.style} onChange={(e) => props.setStyle(e.target.value)}>{["balanced", "social", "nightlife", "culture", "food", "budget", "remote-work", "sports"].map((s) => <option key={s}>{s}</option>)}</select></div>
+            <div><FieldLabel>Style</FieldLabel><select className="w-full rounded-xl border border-white/10 bg-white/[0.065] p-3 text-slate-100" value={props.style} onChange={(e) => props.setStyle(e.target.value as TravelStyle)}>{["balanced", "social", "nightlife", "culture", "food", "budget", "remote-work", "sports"].map((s) => <option key={s}>{s}</option>)}</select></div>
           </div>
           <Button className="mt-4" onClick={props.runExtraction}>Extract structured intent</Button>
           <h3 className="mt-7 text-lg font-black text-white">Feature toggles</h3>
