@@ -104,7 +104,7 @@ export async function POST(request: Request) {
       () => ({ status: "fallback", visitorScoped: true, memorySource: visitor.source, persisted: false, trip: fallbackTrip(input), message: "DATABASE_URL is not configured; this trip was not persisted." })
     ));
 
-    if (visitor.shouldSetCookie) {
+    if (visitor.shouldSetCookie && visitor.anonymousId) {
       const options = visitorCookieOptions();
       response.cookies.set(options.name, visitor.anonymousId, options);
     }
