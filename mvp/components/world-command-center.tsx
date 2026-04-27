@@ -5,6 +5,7 @@ import Link from "next/link";
 import { worldCities, continents, type Continent, type WorldCity } from "@/lib/world-data";
 import { defaultIntent } from "@/lib/extraction";
 import { scoreCity } from "@/lib/scoring";
+import { Real3DGlobe } from "@/components/real-3d-globe";
 import s from "./world-command.module.css";
 
 type TopN = 10 | 25 | 50 | 100;
@@ -20,12 +21,6 @@ function makeIntent() {
   intent.desired_features.bars = true;
   intent.travel_style = ["social", "culture", "food"];
   return intent;
-}
-
-function project(lat: number, lng: number) {
-  const x = 50 + lng / 180 * 38;
-  const y = 50 - lat / 90 * 34;
-  return { x: Math.max(8, Math.min(92, x)), y: Math.max(12, Math.min(88, y)) };
 }
 
 export function WorldCommandCenter() {
@@ -76,7 +71,7 @@ export function WorldCommandCenter() {
       <section className={s.stage}>
         <div className={`${s.floatStat} ${s.pulse}`}><div className={s.statLabel}>Global pulse<br/>Live city index</div><div style={{display:"flex",alignItems:"center",gap:12}}><div className={s.spark}/><div className={s.statValue}>73</div></div></div>
         <div className={`${s.floatStat} ${s.analyzed}`}><div className={s.statLabel}>Cities analyzed</div><div style={{fontSize:30,fontWeight:950}}>9,842</div><div style={{fontSize:11,color:"#86efac"}}>● Updated just now</div></div>
-        <Globe ranked={visible} selected={selected.city.id} onSelect={setSelectedId}/>
+        <Real3DGlobe cities={visible} selectedId={selected.city.id} onSelect={setSelectedId}/>
         <div className={s.dock}><span className={s.dockBtn}>⌖</span><span className={`${s.dockBtn} ${s.dockActive}`}>◎</span><span className={s.dockBtn}>⌁</span><span className={s.dockBtn}>≋</span></div>
       </section>
 
@@ -101,4 +96,3 @@ function Control({icon,title,children}:{icon:string;title:string;children:React.
 function Pill({active,onClick,children}:{active:boolean;onClick:()=>void;children:React.ReactNode}){return <button onClick={onClick} className={`${s.pill} ${active?s.pillActive:""}`}>{children}</button>}
 function Score({label,value}:{label:string;value:number}){return <div><div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:900,textTransform:"uppercase"}}><span>{label}</span><span>{value}</span></div><div className={s.bar}><div className={s.barFill} style={{width:`${value}%`}}/></div></div>}
 function Bottom({label,value}:{label:string;value:string}){return <div className={s.bottomItem}><div className={s.bottomLabel}>{label}</div><div className={s.bottomValue}>{value}</div></div>}
-function Globe({ranked,selected,onSelect}:{ranked:Ranked[];selected:string;onSelect:(id:string)=>void}){const blobs=["left-[17%] top-[24%] h-[23%] w-[18%] rotate-[-18deg]","left-[24%] top-[47%] h-[28%] w-[13%] rotate-[12deg]","left-[46%] top-[22%] h-[21%] w-[17%] rotate-[8deg]","left-[55%] top-[28%] h-[30%] w-[27%] rotate-[18deg]","left-[50%] top-[55%] h-[24%] w-[12%] rotate-[-10deg]","left-[74%] top-[61%] h-[13%] w-[15%] rotate-[8deg]"];return <div className={s.earthWrap}><div className={s.earthGlow}/><div className={s.orbit}/><div className={`${s.orbit} ${s.orbit2}`}/><div className={s.earth}><div className={s.grid}/>{blobs.map(b=><div key={b} className={`${s.land} ${b}`}/>)}<div className={s.nightLights}/><div className={s.clouds}/><div className={s.shine}/>{ranked.slice(0,20).map((x)=>{const p=project(x.city.lat,x.city.lng);return <button key={x.city.id} onClick={()=>onSelect(x.city.id)} className={s.marker} style={{left:`${p.x}%`,top:`${p.y}%`}}><span className={s.dot} style={x.city.id===selected?{background:'#bbf7d0',boxShadow:'0 0 30px #bbf7d0'}:{}}/><span className={s.markerLabel}>{x.city.name} {x.score}</span></button>})}</div></div>}
