@@ -1,30 +1,16 @@
-import { BusinessPortalPanel, DecisionBoardPanel, ImageDefinerPanel, NetworkingPanel, OpportunityRadarPanel, RouteGeneratorPanel } from "@/components/advanced-panels";
-import { Card, Chip, GhostButton } from "@/components/ui";
-import { cities, places } from "@/lib/seed";
-import { defaultIntent } from "@/lib/extraction";
-import { scoreCity, scorePlace } from "@/lib/scoring";
 import Link from "next/link";
+import { Card, Chip, GhostButton, MetricBar, SectionHeader, SoftCard, StatPill } from "@/components/ui";
+
+const modules = [
+  { title: "Decision cockpit", score: 86, body: "Turns group disagreement into visible weighted tradeoffs across budget, nightlife, culture, food, mobility, and social density." },
+  { title: "Opportunity radar", score: 82, body: "Compresses city ranking, place evidence, social density, and business confirmation into a founder-readable trip thesis." },
+  { title: "Social route generator", score: 78, body: "Composes matched places into energy-aware day blocks: morning, afternoon, evening, night, and recovery windows." },
+  { title: "Business ambience builder", score: 74, body: "Lets venues describe their actual social reality instead of vague listing copy like cozy or good atmosphere." },
+  { title: "Image-based place definer", score: 70, body: "Conceptually turns venue images into safe place-level tags without identifying private individuals or sensitive traits." },
+  { title: "Networking contexts", score: 84, body: "Recommends opt-in environments like language exchanges, sports nights, food tours, and coworking socials — never individual people." }
+];
 
 export default function ProductLabPage() {
-  const intent = defaultIntent();
-  intent.desired_features.sea = true;
-  intent.desired_features.historic = true;
-  intent.desired_features.seafood = true;
-  intent.desired_features.international_crowd = true;
-  intent.desired_features.bars = true;
-  intent.desired_features.young_adults = true;
-  intent.avoid.too_crowded = true;
-  intent.travel_style = ["social", "culture", "food"];
-
-  const rankedCities = cities
-    .map((city) => ({ city, result: scoreCity(city, intent) }))
-    .sort((a, b) => b.result.score - a.result.score);
-
-  const cityScores = new Map(rankedCities.map(({ city, result }) => [city.id, result.score]));
-  const rankedPlaces = places
-    .map((place) => ({ place, result: scorePlace(place, intent, cityScores.get(place.city_id) ?? 70) }))
-    .sort((a, b) => b.result.score - a.result.score);
-
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-16">
       <section className="grid gap-6 py-12 lg:grid-cols-[1fr_0.8fr]">
@@ -34,30 +20,34 @@ export default function ProductLabPage() {
             The operating-system layer.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-            This route contains the experimental founder-level functionality: group decision tuning, opportunity radar, route composition, business ambience confirmation, image-based place definition, and opt-in networking.
+            A stable overview of the next functional modules: group decision tuning, opportunity radar, route composition, venue ambience confirmation, image definition, and opt-in networking.
           </p>
-          <Link href="/">
-            <GhostButton className="mt-6">Back to main app</GhostButton>
-          </Link>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/portal"><GhostButton>Back to portal</GhostButton></Link>
+            <Link href="/world"><GhostButton>Open world intelligence</GhostButton></Link>
+          </div>
         </div>
         <Card>
-          <h2 className="text-2xl font-black text-white">What changed</h2>
-          <div className="mt-4 grid gap-3 text-sm leading-6 text-slate-300">
-            <p>1. Group decision cockpit turns disagreement into weighted tradeoffs.</p>
-            <p>2. Opportunity radar explains where the trip is most likely to work.</p>
-            <p>3. Social route generator composes places into energy-aware days.</p>
-            <p>4. Business portal generates structured ambience profiles.</p>
-            <p>5. Image definer simulates safe venue-level evidence extraction.</p>
+          <SectionHeader eyebrow="Lab status" title="Prototype modules" body="These modules are staged as product concepts while /world becomes the primary interactive surface." />
+          <div className="grid gap-3 md:grid-cols-2">
+            <StatPill label="Modules" value={modules.length} note="concept blocks" />
+            <StatPill label="Main surface" value="/world" note="immersive globe" />
           </div>
         </Card>
       </section>
 
-      <OpportunityRadarPanel rankedCities={rankedCities} rankedPlaces={rankedPlaces} />
-      <DecisionBoardPanel rankedCities={rankedCities} />
-      <RouteGeneratorPanel rankedCities={rankedCities} rankedPlaces={rankedPlaces} />
-      <BusinessPortalPanel />
-      <ImageDefinerPanel />
-      <NetworkingPanel />
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {modules.map((module) => (
+          <SoftCard key={module.title}>
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-xl font-black text-white">{module.title}</h2>
+              <Chip tone="good">{module.score}</Chip>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-300">{module.body}</p>
+            <div className="mt-5"><MetricBar label="Implementation readiness" score={module.score} /></div>
+          </SoftCard>
+        ))}
+      </section>
     </main>
   );
 }
