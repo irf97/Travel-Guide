@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   try {
     const body = await parseJson(request, {});
     const input = imageAnalyzeRequestSchema.parse(body);
-    return ok(imageAnalyzeService(input));
+    return ok(await imageAnalyzeService(input));
   } catch (error) {
     return handleError(error);
   }
