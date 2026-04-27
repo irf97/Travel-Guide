@@ -1,6 +1,7 @@
 import { handleError, ok, parseJson } from "@/lib/server/api";
 import { withDb } from "@/lib/server/db";
-import { getVisitorKey } from "@/lib/server/visitor-memory";
+import { getExistingVisitorKey, getOrCreateAnonymousVisitor, visitorCookieOptions } from "@/lib/server/visitor-memory";
+import { cookies } from "next/headers";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,7 @@ type TripView = {
 type TripsGetResponse = {
   status: "live" | "fallback";
   visitorScoped: boolean;
+  memorySource: "cookie" | "new-cookie" | "fallback-headers";
   trips: TripView[];
   message: string;
 };
@@ -39,6 +41,7 @@ type TripsGetResponse = {
 type TripWriteResponse = {
   status: "live" | "fallback";
   visitorScoped: boolean;
+  memorySource: "cookie" | "new-cookie" | "fallback-headers";
   persisted: boolean;
   trip: TripView;
   message: string;
@@ -64,13 +67,13 @@ function tripViewFromDb(trip: { id: string; title: string; cityId: string | null
 
 export async function GET(request: Request) {
   try {
-    const visitorKey = getVisitorKey(request.headers);
+    const visitorKey = getExistingVisitorKey(cookies(), request.headers);
     return ok(await withDb<TripsGetResponse>(
       async (db) => {
         const trips = await db.trip.findMany({ where: { visitorKey }, orderBy: { createdAt: "desc" }, take: 50 });
-        return { status: "live", visitorScoped: true, trips: trips.map(tripViewFromDb), message: "Trips loaded for this visitor." };
+        return { status: "live", visitorScoped: true, memorySource: "cookie", trips: trips.map(tripViewFromDb), message: "Trips loaded for this browser memory." };
       },
-      () => ({ status: "fallback", visitorScoped: true, trips: [], message: "DATABASE_URL is not configured; saved trips are not persisted yet." })
+      () => ({ status: "fallback", visitorScoped: true, memorySource: "fallback-headers", trips: [], message: "DATABASE_URL is not configured; saved trips are not persisted yet." })
     ));
   } catch (error) {
     return handleError(error);
@@ -79,14 +82,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const visitorKey = getVisitorKey(request.headers);
+    const visitor = getOrCreateAnonymousVisitor(cookies(), request.headers);
     const body = await parseJson(request, {});
     const input = tripSchema.parse(body);
-    return ok(await withDb<TripWriteResponse>(
+    const response = ok(await withDb<TripWriteResponse>(
       async (db) => {
         const created = await db.trip.create({
           data: {
-            visitorKey,
+            visitorKey: visitor.visitorKey,
             title: input.title,
             cityId: input.cityId,
             month: input.month,
@@ -96,10 +99,17 @@ export async function POST(request: Request) {
             notes: input.notes
           }
         });
-        return { status: "live", visitorScoped: true, persisted: true, trip: tripViewFromDb(created), message: "Trip saved to this visitor memory." };
+        return { status: "live", visitorScoped: true, memorySource: visitor.source, persisted: true, trip: tripViewFromDb(created), message: "Trip saved to anonymous browser memory." };
       },
-      () => ({ status: "fallback", visitorScoped: true, persisted: false, trip: fallbackTrip(input), message: "DATABASE_URL is not configured; this trip was not persisted." })
+      () => ({ status: "fallback", visitorScoped: true, memorySource: visitor.source, persisted: false, trip: fallbackTrip(input), message: "DATABASE_URL is not configured; this trip was not persisted." })
     ));
+
+    if (visitor.shouldSetCookie) {
+      const options = visitorCookieOptions();
+      response.cookies.set(options.name, visitor.anonymousId, options);
+    }
+
+    return response;
   } catch (error) {
     return handleError(error);
   }
@@ -107,14 +117,14 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const visitorKey = getVisitorKey(request.headers);
+    const visitorKey = getExistingVisitorKey(cookies(), request.headers);
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
     if (!id) return ok({ status: "fallback", deleted: false, message: "Missing id." }, { status: 400 });
     return ok(await withDb(
       async (db) => {
         await db.trip.deleteMany({ where: { id, visitorKey } });
-        return { status: "live", deleted: true, id, message: "Trip deleted from this visitor memory." };
+        return { status: "live", deleted: true, id, message: "Trip deleted from this browser memory." };
       },
       () => ({ status: "fallback", deleted: false, id, message: "DATABASE_URL is not configured; no persisted trip was deleted." })
     ));
