@@ -1,0 +1,24 @@
+{
+  "version": "2026-04-27.stored-venue-v1",
+  "status": "stored_baseline",
+  "source": "stored venue-density model",
+  "note": "Runtime rankings use these stored venue estimates. Replace with OSM/Overture/FSQ snapshots later without changing UI logic.",
+  "basePerScorePoint": {
+    "bars": 1.75,
+    "clubs": 0.14,
+    "restaurants": 2.35,
+    "cafes": 1.2,
+    "museums": 0.16,
+    "historicSites": 0.18,
+    "gyms": 0.2,
+    "coworking": 0.08
+  },
+  "continentMultipliers": {
+    "Europe": 1.08,
+    "Asia": 1.02,
+    "Africa": 0.82,
+    "North America": 1.05,
+    "South America": 0.96,
+    "Oceania": 0.88
+  }
+}
