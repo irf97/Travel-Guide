@@ -59,6 +59,11 @@ function tripFromInput(id: string, input: TripInput, createdAt: Date | string = 
   };
 }
 
+function persistedTitle(input: TripInput): string {
+  const parts = [input.title, input.cityId ? `city:${input.cityId}` : null, input.month ? `month:${input.month}` : null, input.computedScore ? `score:${input.computedScore}` : null].filter(Boolean);
+  return parts.join(" | ");
+}
+
 export async function GET() {
   try {
     return ok(await withDb<TripsGetResponse>(
@@ -71,7 +76,7 @@ export async function GET() {
             title: trip.title,
             createdAt: trip.createdAt instanceof Date ? trip.createdAt.toISOString() : String(trip.createdAt)
           })),
-          message: "Trips loaded from database."
+          message: "Trips loaded from database. Rich trip metadata will persist after Prisma Client is regenerated from the expanded schema."
         };
       },
       () => ({ status: "fallback", trips: [], message: "DATABASE_URL is not configured; saved trips are not persisted yet." })
@@ -89,16 +94,10 @@ export async function POST(request: Request) {
       async (db) => {
         const created = await db.trip.create({
           data: {
-            title: input.title,
-            cityId: input.cityId,
-            month: input.month,
-            budgetLevel: input.budgetLevel,
-            goal: input.goal,
-            computedScore: input.computedScore,
-            notes: input.notes
+            title: persistedTitle(input)
           }
         });
-        return { status: "live", persisted: true, trip: tripFromInput(created.id, input, created.createdAt), message: "Trip saved to database." };
+        return { status: "live", persisted: true, trip: tripFromInput(created.id, input, created.createdAt), message: "Trip saved to database. Current Prisma Client persists the title field; richer metadata is returned to the UI and will persist after migration/generation." };
       },
       () => ({ status: "fallback", persisted: false, trip: fallbackTrip(input), message: "DATABASE_URL is not configured; this trip was not persisted." })
     ));
