@@ -1,6 +1,6 @@
-import { WorldIntelligenceApp } from "@/components/world-intelligence";
+import { ImmersiveWorld } from "@/components/immersive-world";
 import { worldCities } from "@/lib/world-data";
 
 export default function WorldPage() {
-  return <WorldIntelligenceApp cities={worldCities} />;
+  return <ImmersiveWorld cities={worldCities} />;
 }
