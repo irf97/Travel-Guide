@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       },
       () => ({ status: "fallback", persisted: false, memorySource: visitor.source, message: "DATABASE_URL is not configured; memory event was not persisted." })
     ));
-    if (visitor.shouldSetCookie) {
+    if (visitor.shouldSetCookie && visitor.anonymousId) {
       const options = visitorCookieOptions();
       response.cookies.set(options.name, visitor.anonymousId, options);
     }
