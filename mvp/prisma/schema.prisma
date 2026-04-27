@@ -258,7 +258,7 @@ model RawSnapshot {
   cityId    String?
   city      City?    @relation(fields: [cityId], references: [id])
   payload   Json?
-  error     Text?
+  error     String?
   fetchedAt DateTime @default(now())
 
   @@index([source])
