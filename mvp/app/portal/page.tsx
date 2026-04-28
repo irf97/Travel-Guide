@@ -14,6 +14,7 @@ const routeGroups = [
   {
     title: "Stored data APIs",
     routes: [
+      { href: "/api/rankings?passport=turkish&gender=nightlife-balanced&top=25", title: "Stored rankings", body: "Machine-readable ranking logic with passport, gender, pulse, weather, venues, tourism, and city links." },
       { href: "/api/functionality/status", title: "Functionality status", body: "Machine-readable feature map and top-100 audit summary." },
       { href: "/api/audit/top-100", title: "Top-100 audit", body: "Completeness audit for visuals, pulse, gender, venues, weather, tourism, and city pages." },
       { href: "/api/city-intelligence", title: "City intelligence", body: "Unified stored city records." },
@@ -58,6 +59,7 @@ export default function PortalPage() {
       <div className="mt-5 flex flex-wrap gap-2">
         <a href="/functionality" className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950">Open feature index</a>
         <a href="/api/functionality/status" className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300">Open status JSON</a>
+        <a href="/api/rankings?passport=turkish&gender=nightlife-balanced&top=25" className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300">Open rankings JSON</a>
         <a href="/audit" className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300">Open audit dashboard</a>
       </div>
     </section>
