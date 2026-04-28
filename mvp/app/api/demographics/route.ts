@@ -1,26 +1,8 @@
-import { ok } from "@/lib/server/api";
 import { getAllCityIntelligence } from "@/lib/city-intelligence";
+import { aggregateTouristNationalities, toDemographicsView, weightedAverage } from "@/lib/demographics-view";
+import { ok } from "@/lib/server/api";
 
 export const dynamic = "force-dynamic";
-
-function weightedAverage(values: Array<{ value: number; weight: number }>) {
-  const totalWeight = values.reduce((sum, item) => sum + item.weight, 0);
-  if (!totalWeight) return 0;
-  return Math.round(values.reduce((sum, item) => sum + item.value * item.weight, 0) / totalWeight);
-}
-
-function aggregateNationality(cities: ReturnType<typeof getAllCityIntelligence>) {
-  const map = new Map<string, number>();
-  for (const city of cities) {
-    for (const item of city.demographics.touristNationalityMix) {
-      map.set(item.label, (map.get(item.label) ?? 0) + item.share);
-    }
-  }
-  return [...map.entries()]
-    .map(([label, value]) => ({ label, share: Math.round(value / Math.max(1, cities.length)) }))
-    .sort((a, b) => b.share - a.share)
-    .slice(0, 12);
-}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -38,8 +20,8 @@ export async function GET(request: Request) {
     .slice(0, top);
 
   const generalGender = {
-    male: weightedAverage(cities.map((city) => ({ value: city.demographics.generalGenderMix.male, weight: 1 }))),
-    female: weightedAverage(cities.map((city) => ({ value: city.demographics.generalGenderMix.female, weight: 1 })))
+    male: weightedAverage(cities.map((city) => ({ value: city.demographics.generalGenderMix.male }))),
+    female: weightedAverage(cities.map((city) => ({ value: city.demographics.generalGenderMix.female })))
   };
 
   const nightlifeGender = {
@@ -55,35 +37,12 @@ export async function GET(request: Request) {
     aggregate: {
       generalGender,
       nightlifeGender,
-      nationalityMix: aggregateNationality(cities),
-      averageGenderBalanceScore: weightedAverage(cities.map((city) => ({ value: city.demographics.genderBalanceScore, weight: 1 }))),
-      averageTouristShare: weightedAverage(cities.map((city) => ({ value: city.demographics.touristVisitorShare, weight: 1 }))),
-      averageLocalShare: weightedAverage(cities.map((city) => ({ value: city.demographics.localResidentShare, weight: 1 }))),
-      averageInternationalCrowdScore: weightedAverage(cities.map((city) => ({ value: city.demographics.internationalCrowdScore, weight: 1 })))
+      nationalityMix: aggregateTouristNationalities(cities).slice(0, 12),
+      averageGenderBalanceScore: weightedAverage(cities.map((city) => ({ value: city.demographics.genderBalanceScore }))),
+      averageTouristShare: weightedAverage(cities.map((city) => ({ value: city.demographics.touristVisitorShare }))),
+      averageLocalShare: weightedAverage(cities.map((city) => ({ value: city.demographics.localResidentShare }))),
+      averageInternationalCrowdScore: weightedAverage(cities.map((city) => ({ value: city.demographics.internationalCrowdScore })))
     },
-    cities: cities.map((city) => ({
-      id: city.id,
-      name: city.name,
-      country: city.country,
-      continent: city.continent,
-      href: `/cities/${city.id}`,
-      flag: city.visuals.flag,
-      genderBalanceScore: city.demographics.genderBalanceScore,
-      generalGenderMix: city.demographics.generalGenderMix,
-      nightlifeGenderMix: city.demographics.nightlifeGenderMix,
-      nationalityMix: city.demographics.nationalityMix,
-      touristNationalityMix: city.demographics.touristNationalityMix,
-      localResidentShare: city.demographics.localResidentShare,
-      touristVisitorShare: city.demographics.touristVisitorShare,
-      internationalCrowdScore: city.demographics.internationalCrowdScore,
-      confidenceScore: city.demographics.confidenceScore,
-      venues: {
-        bars: city.venues.bars,
-        clubs: city.venues.clubs,
-        restaurants: city.venues.restaurants,
-        cafes: city.venues.cafes
-      },
-      sourceConfidence: city.sourceConfidence.demographics
-    }))
+    cities: cities.map(toDemographicsView)
   });
 }
