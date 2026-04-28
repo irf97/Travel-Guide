@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { getAllCityIntelligence, type MonthName } from "@/lib/city-intelligence";
 
 const months: MonthName[] = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -45,7 +44,7 @@ export default function ProductLabPage() {
       <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-200">Functional product lab</p>
       <h1 className="mt-3 text-5xl font-black tracking-[-0.06em] md:text-7xl">Decision tools, not placeholders.</h1>
       <p className="mt-4 max-w-3xl text-slate-300">Compare cities, tune weights, generate a route logic, and inspect stored intelligence tradeoffs. This page now uses the same city-intelligence layer as Rankings.</p>
-      <div className="mt-5 flex gap-2"><Link className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950" href="/rankings">Open rankings</Link><Link className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300" href={`/cities/${winner.id}`}>Open winner</Link></div>
+      <div className="mt-5 flex gap-2"><a className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950" href="/rankings">Open rankings</a><a className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300" href={`/cities/${winner.id}`}>Open winner</a></div>
     </section>
 
     <section className="mt-6 grid gap-6 lg:grid-cols-[.95fr_1.05fr]">
