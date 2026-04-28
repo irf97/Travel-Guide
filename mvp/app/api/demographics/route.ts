@@ -58,7 +58,8 @@ export async function GET(request: Request) {
       nationalityMix: aggregateNationality(cities),
       averageGenderBalanceScore: weightedAverage(cities.map((city) => ({ value: city.demographics.genderBalanceScore, weight: 1 }))),
       averageTouristShare: weightedAverage(cities.map((city) => ({ value: city.demographics.touristVisitorShare, weight: 1 }))),
-      averageLocalShare: weightedAverage(cities.map((city) => ({ value: city.demographics.localResidentShare, weight: 1 })))
+      averageLocalShare: weightedAverage(cities.map((city) => ({ value: city.demographics.localResidentShare, weight: 1 }))),
+      averageInternationalCrowdScore: weightedAverage(cities.map((city) => ({ value: city.demographics.internationalCrowdScore, weight: 1 })))
     },
     cities: cities.map((city) => ({
       id: city.id,
@@ -70,10 +71,11 @@ export async function GET(request: Request) {
       genderBalanceScore: city.demographics.genderBalanceScore,
       generalGenderMix: city.demographics.generalGenderMix,
       nightlifeGenderMix: city.demographics.nightlifeGenderMix,
+      nationalityMix: city.demographics.nationalityMix,
       touristNationalityMix: city.demographics.touristNationalityMix,
       localResidentShare: city.demographics.localResidentShare,
       touristVisitorShare: city.demographics.touristVisitorShare,
-      internationalStudentShare: city.demographics.internationalStudentShare,
+      internationalCrowdScore: city.demographics.internationalCrowdScore,
       confidenceScore: city.demographics.confidenceScore,
       venues: {
         bars: city.venues.bars,
