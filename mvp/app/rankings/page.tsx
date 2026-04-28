@@ -98,7 +98,8 @@ function rankCity(city: CityIntelligence, input: { month: MonthName; budget: num
   const penalty = riskPenalty(city, input.avoid, input.budget);
   const style = styleScore(city, input.styles, selectedWeather);
   const passport = passportFit(city, input.passport);
-  const confidenceScore = clamp(city.demographics.confidenceScore * 0.28 + (city.tourism.confidence === "high" ? 86 : city.tourism.confidence === "medium" ? 68 : 45) * 0.25 + selectedWeather.weatherComfort * 0.15 + city.venues.densityScore * 0.18 + city.pulse.confidence === "medium" ? 8 : 4);
+  const pulseConfidence = city.pulse.confidence === "medium" ? 8 : 4;
+  const confidenceScore = clamp(city.demographics.confidenceScore * 0.28 + (city.tourism.confidence === "high" ? 86 : city.tourism.confidence === "medium" ? 68 : 45) * 0.25 + selectedWeather.weatherComfort * 0.15 + city.venues.densityScore * 0.18 + pulseConfidence);
   const score = clamp(
     style * 0.19 +
     fit * 0.14 +
