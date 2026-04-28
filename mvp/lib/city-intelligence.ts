@@ -1,7 +1,9 @@
 import climateBaselines from "@/data/weather/monthly-climate-baselines.json";
 import venueBaselines from "@/data/venues/venue-density-baselines.json";
 import { getCityDemographicModel } from "./city-demographics";
+import { getStoredCityPulse } from "./city-pulse-data";
 import { getCityTourismModel } from "./tourism-data";
+import { getCityVisuals } from "./city-visuals";
 import { worldCities, type WorldCity } from "./world-data";
 
 export type MonthName = "January" | "February" | "March" | "April" | "May" | "June" | "July" | "August" | "September" | "October" | "November" | "December";
@@ -33,9 +35,20 @@ export type StoredVenueDensity = {
   confidence: "low" | "medium";
 };
 
+export type IdentityVenueCounts = {
+  locals: Pick<StoredVenueDensity, "bars" | "clubs" | "restaurants" | "cafes">;
+  tourists: Pick<StoredVenueDensity, "bars" | "clubs" | "restaurants" | "cafes">;
+  students: Pick<StoredVenueDensity, "bars" | "clubs" | "restaurants" | "cafes">;
+  remoteWorkers: Pick<StoredVenueDensity, "bars" | "clubs" | "restaurants" | "cafes">;
+  note: string;
+};
+
 export type CityIntelligence = WorldCity & {
   monthlyWeather: Record<MonthName, StoredMonthlyWeather>;
   venues: StoredVenueDensity;
+  identityVenueCounts: IdentityVenueCounts;
+  visuals: ReturnType<typeof getCityVisuals>;
+  pulse: ReturnType<typeof getStoredCityPulse>;
   demographics: ReturnType<typeof getCityDemographicModel>;
   tourism: ReturnType<typeof getCityTourismModel>;
   sourceConfidence: {
@@ -43,6 +56,8 @@ export type CityIntelligence = WorldCity & {
     venues: string;
     tourism: string;
     demographics: string;
+    pulse: string;
+    visuals: string;
     updatedAt: string;
   };
 };
@@ -102,18 +117,41 @@ function venueDensityForCity(city: WorldCity): StoredVenueDensity {
   return { bars, clubs, restaurants, cafes, museums, historicSites, gyms, coworking, densityScore, socialSurfaceArea, sourceLabel: "stored venue-density baseline", confidence: "low" };
 }
 
+function splitVenueCounts(venues: StoredVenueDensity, demographics: ReturnType<typeof getCityDemographicModel>): IdentityVenueCounts {
+  const touristShare = demographics.touristVisitorShare / 100;
+  const localShare = demographics.localResidentShare / 100;
+  const studentShare = Math.min(0.18, Math.max(0.04, demographics.internationalCrowdScore / 700));
+  const remoteShare = Math.min(0.12, Math.max(0.02, venues.coworking / 140));
+  const split = (value: number, share: number) => Math.max(1, Math.round(value * share));
+  const pick = (share: number) => ({ bars: split(venues.bars, share), clubs: split(venues.clubs, share), restaurants: split(venues.restaurants, share), cafes: split(venues.cafes, share) });
+  return {
+    locals: pick(localShare),
+    tourists: pick(touristShare),
+    students: pick(studentShare),
+    remoteWorkers: pick(remoteShare),
+    note: "Identity split is a stored deterministic estimate. Replace with verified OSM/Overture/FSQ + mobility/tourism data when available."
+  };
+}
+
 export function buildCityIntelligence(city: WorldCity): CityIntelligence {
+  const venues = venueDensityForCity(city);
+  const demographics = getCityDemographicModel(city);
   return {
     ...city,
     monthlyWeather: monthlyWeatherForCity(city),
-    venues: venueDensityForCity(city),
-    demographics: getCityDemographicModel(city),
+    venues,
+    identityVenueCounts: splitVenueCounts(venues, demographics),
+    visuals: getCityVisuals(city),
+    pulse: getStoredCityPulse(city),
+    demographics,
     tourism: getCityTourismModel(city),
     sourceConfidence: {
       weather: "stored monthly climate average",
       venues: "stored venue-density baseline; replaceable by OSM/Overture/FSQ snapshot",
       tourism: "stored downloadable Eurostat snapshot",
       demographics: "stored deterministic model estimate",
+      pulse: "stored local pulse for top-city runtime",
+      visuals: "stored local visual metadata; image URLs can be added later",
       updatedAt: "2026-04-27"
     }
   };
