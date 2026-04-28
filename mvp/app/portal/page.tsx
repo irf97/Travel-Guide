@@ -7,12 +7,15 @@ const routeGroups = [
       { href: "/", title: "World Globe", body: "Main visual exploration page." },
       { href: "/rankings", title: "Rankings", body: "Filterable city intelligence control center." },
       { href: "/trips", title: "Trips", body: "Anonymous saved-trip memory." },
-      { href: "/lab", title: "Lab", body: "Functional city comparison and route logic tools." }
+      { href: "/lab", title: "Lab", body: "Functional city comparison and route logic tools." },
+      { href: "/functionality", title: "Functionality Index", body: "Human-readable feature map and acceptance checks." }
     ]
   },
   {
     title: "Stored data APIs",
     routes: [
+      { href: "/api/functionality/status", title: "Functionality status", body: "Machine-readable feature map and top-100 audit summary." },
+      { href: "/api/audit/top-100", title: "Top-100 audit", body: "Completeness audit for visuals, pulse, gender, venues, weather, tourism, and city pages." },
       { href: "/api/city-intelligence", title: "City intelligence", body: "Unified stored city records." },
       { href: "/api/cities", title: "Cities", body: "Filterable city list with stored metadata." },
       { href: "/api/tourism", title: "Tourism", body: "Stored downloadable tourism snapshot." },
@@ -45,12 +48,17 @@ export default function PortalPage() {
     <section className="rounded-[2rem] border border-white/10 bg-white/[0.055] p-6 shadow-2xl shadow-sky-950/30 backdrop-blur-xl">
       <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-200">Command hub</p>
       <h1 className="mt-3 text-5xl font-black tracking-[-0.06em] md:text-7xl">Social Travel Intelligence OS portal.</h1>
-      <p className="mt-4 max-w-3xl text-slate-300">One control page for the live product surfaces, stored intelligence APIs, top-city audit, and fast jumps into city detail pages. No dead buttons.</p>
+      <p className="mt-4 max-w-3xl text-slate-300">One control page for live product surfaces, stored intelligence APIs, top-city audit, feature checks, and fast jumps into city detail pages. No dead buttons.</p>
       <div className="mt-6 grid gap-3 md:grid-cols-4">
         <Metric label="Stored cities" value={cities.length} />
         <Metric label="Top-100 audit" value={`${complete}/100`} />
         <Metric label="Countries" value={new Set(cities.map((city)=>city.country)).size} />
         <Metric label="Runtime source" value="Stored" />
+      </div>
+      <div className="mt-5 flex flex-wrap gap-2">
+        <a href="/functionality" className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950">Open feature index</a>
+        <a href="/api/functionality/status" className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300">Open status JSON</a>
+        <a href="/audit" className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300">Open audit dashboard</a>
       </div>
     </section>
 
