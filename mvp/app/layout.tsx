@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,22 +8,21 @@ export const metadata: Metadata = {
 };
 
 const navLinks = [
-  { href: "/", label: "Main OS", tone: "ghost" },
-  { href: "/rankings", label: "Rankings", tone: "primary" },
-  { href: "/world", label: "World Globe", tone: "ghost" },
+  { href: "/", label: "World", tone: "primary" },
+  { href: "/rankings", label: "Rankings", tone: "ghost" },
   { href: "/trips", label: "Trips", tone: "ghost" },
-  { href: "/admin", label: "Admin", tone: "ghost" },
+  { href: "/cities/barcelona-spain", label: "City", tone: "ghost" },
   { href: "/lab", label: "Lab", tone: "ghost" },
   { href: "/portal", label: "Portal", tone: "ghost" },
-  { href: "/privacy", label: "Privacy", tone: "ghost" },
-  { href: "/terms", label: "Terms", tone: "ghost" }
+  { href: "/admin", label: "Admin", tone: "ghost" }
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" data-theme="cosmic">
       <body>
-        <nav className="fixed bottom-4 right-4 z-[80] flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-end gap-2 rounded-3xl border border-white/10 bg-slate-950/80 p-2 text-xs font-black text-white shadow-2xl shadow-sky-950/40 backdrop-blur-xl sm:rounded-full">
+        <div className="fixed right-4 top-4 z-[90]"><ThemeSwitcher /></div>
+        <nav className="fixed bottom-3 left-1/2 z-[80] flex max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-3xl border border-white/10 bg-slate-950/85 p-2 text-xs font-black text-white shadow-2xl shadow-sky-950/40 backdrop-blur-xl sm:bottom-4 sm:rounded-full">
           {navLinks.map((link) => (
             <a
               key={link.href}
