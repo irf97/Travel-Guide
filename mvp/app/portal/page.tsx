@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getAllCityIntelligence } from "@/lib/city-intelligence";
 
 const routeGroups = [
@@ -58,18 +57,18 @@ export default function PortalPage() {
     <section className="mt-6 grid gap-4 lg:grid-cols-2">
       {routeGroups.map((group) => <article key={group.title} className="rounded-[2rem] border border-white/10 bg-white/[0.055] p-5 backdrop-blur-xl">
         <h2 className="text-2xl font-black">{group.title}</h2>
-        <div className="mt-4 grid gap-3">{group.routes.map((route)=><Link key={route.href} href={route.href} className="rounded-2xl border border-white/10 bg-slate-950/50 p-4 transition hover:border-sky-200/50 hover:bg-sky-200/10"><div className="flex items-center justify-between gap-3"><h3 className="font-black text-white">{route.title}</h3><span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black text-sky-200">Open</span></div><p className="mt-1 text-sm text-slate-400">{route.body}</p><p className="mt-2 break-all text-xs text-slate-500">{route.href}</p></Link>)}</div>
+        <div className="mt-4 grid gap-3">{group.routes.map((route)=><a key={route.href} href={route.href} className="rounded-2xl border border-white/10 bg-slate-950/50 p-4 transition hover:border-sky-200/50 hover:bg-sky-200/10"><div className="flex items-center justify-between gap-3"><h3 className="font-black text-white">{route.title}</h3><span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black text-sky-200">Open</span></div><p className="mt-1 text-sm text-slate-400">{route.body}</p><p className="mt-2 break-all text-xs text-slate-500">{route.href}</p></a>)}</div>
       </article>)}
     </section>
 
     <section className="mt-6 rounded-[2rem] border border-white/10 bg-white/[0.055] p-5 backdrop-blur-xl">
-      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-black">Fast city access</h2><Link href="/rankings" className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950">Open full rankings</Link></div>
-      <div className="mt-4 grid gap-3 md:grid-cols-4">{topCities.map((city)=><Link key={city.id} href={`/cities/${city.id}`} className="rounded-2xl border border-white/10 bg-slate-950/50 p-4 transition hover:border-sky-200/50"><div className="text-4xl">{city.visuals.flag}</div><h3 className="mt-3 text-xl font-black">{city.name}</h3><p className="text-sm text-slate-400">{city.country} · pulse {city.pulse.demandPressure}</p></Link>)}</div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-black">Fast city access</h2><a href="/rankings" className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950">Open full rankings</a></div>
+      <div className="mt-4 grid gap-3 md:grid-cols-4">{topCities.map((city)=><a key={city.id} href={`/cities/${city.id}`} className="rounded-2xl border border-white/10 bg-slate-950/50 p-4 transition hover:border-sky-200/50"><div className="text-4xl">{city.visuals.flag}</div><h3 className="mt-3 text-xl font-black">{city.name}</h3><p className="text-sm text-slate-400">{city.country} · pulse {city.pulse.demandPressure}</p></a>)}</div>
     </section>
 
     <section className="mt-6 rounded-[2rem] border border-white/10 bg-white/[0.055] p-5 backdrop-blur-xl">
       <h2 className="text-2xl font-black">Top country coverage</h2>
-      <div className="mt-4 flex flex-wrap gap-2">{topCountries.map((country)=><Link key={country} href={`/api/cities?country=${encodeURIComponent(country)}`} className="rounded-full border border-white/10 bg-slate-950/50 px-4 py-2 text-sm font-black text-slate-300 hover:border-sky-200/50">{country}</Link>)}</div>
+      <div className="mt-4 flex flex-wrap gap-2">{topCountries.map((country)=><a key={country} href={`/api/cities?country=${encodeURIComponent(country)}`} className="rounded-full border border-white/10 bg-slate-950/50 px-4 py-2 text-sm font-black text-slate-300 hover:border-sky-200/50">{country}</a>)}</div>
     </section>
   </main>;
 }
