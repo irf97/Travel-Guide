@@ -59,6 +59,14 @@ export const siteFeatures: SiteFeature[] = [
     acceptance: ["all cards navigate", "API links open", "fast city access opens city pages"]
   },
   {
+    title: "Stored City Plan API",
+    href: "/api/city-plan?id=barcelona-spain&passport=turkish&identity=tourists&month=July&nights=5&budget=700",
+    status: "working",
+    group: "tools",
+    description: "Machine-readable city planner using stored weather, passport fit, identity venue counts, pulse, budget, and trip length.",
+    acceptance: ["returns match score", "returns morning/afternoon/evening/night plan", "returns passport fit", "returns identity venue counts"]
+  },
+  {
     title: "Audit Dashboard",
     href: "/audit",
     status: "working",
@@ -73,6 +81,22 @@ export const siteFeatures: SiteFeature[] = [
     group: "audit",
     description: "JSON completeness audit for visuals, pulse, nationality, gender, venues, weather, tourism, and city pages.",
     acceptance: ["returns total", "returns complete count", "returns city-by-city checks"]
+  },
+  {
+    title: "Functionality Status API",
+    href: "/api/functionality/status",
+    status: "working",
+    group: "audit",
+    description: "Machine-readable status map for major product features and top-100 audit summary.",
+    acceptance: ["returns feature summary", "returns route links", "returns top-100 summary", "returns feature registry"]
+  },
+  {
+    title: "Stored Rankings API",
+    href: "/api/rankings?passport=turkish&gender=nightlife-balanced&top=25",
+    status: "working",
+    group: "intelligence",
+    description: "Machine-readable stored ranking logic matching the UI, including passport, gender, weather, pulse, venues, and tourism.",
+    acceptance: ["returns ranked cities", "supports passport", "supports gender", "returns city links and visual slides"]
   },
   {
     title: "City Intelligence API",
