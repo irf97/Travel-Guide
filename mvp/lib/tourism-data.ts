@@ -8,6 +8,28 @@ type CountryTourismBaseline = {
   domestic_guest_share: number;
   source_label: string;
   confidence: "low" | "medium" | "high";
+  raw_total_nights_2024?: number | null;
+  raw_international_nights_2024?: number | null;
+  error?: string;
+};
+
+type StoredTourismSnapshot = {
+  version: string;
+  source: string;
+  source_url?: string;
+  dataset_codes?: string[];
+  license?: string;
+  last_downloaded_at: string | null;
+  status: string;
+  note?: string;
+  eu_2024?: {
+    tourism_nights_total: number;
+    domestic_guest_share: number;
+    international_guest_share: number;
+    source_label: string;
+    confidence: "low" | "medium" | "high";
+  };
+  countries: Record<string, CountryTourismBaseline>;
 };
 
 export type CityTourismModel = {
@@ -25,11 +47,7 @@ export type CityTourismModel = {
   note: string;
 };
 
-const snapshot = tourismSnapshot as {
-  version: string;
-  status: string;
-  countries: Record<string, CountryTourismBaseline>;
-};
+const snapshot = tourismSnapshot as StoredTourismSnapshot;
 
 function clamp(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
@@ -76,6 +94,6 @@ export function getCityTourismModel(city: WorldCity): CityTourismModel {
   };
 }
 
-export function getStoredTourismSnapshot() {
+export function getStoredTourismSnapshot(): StoredTourismSnapshot {
   return snapshot;
 }
