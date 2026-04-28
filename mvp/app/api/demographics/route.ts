@@ -38,8 +38,8 @@ export async function GET(request: Request) {
     .slice(0, top);
 
   const generalGender = {
-    male: weightedAverage(cities.map((city) => ({ value: city.demographics.generalGenderMix.male, weight: city.population || 1 }))),
-    female: weightedAverage(cities.map((city) => ({ value: city.demographics.generalGenderMix.female, weight: city.population || 1 })))
+    male: weightedAverage(cities.map((city) => ({ value: city.demographics.generalGenderMix.male, weight: 1 }))),
+    female: weightedAverage(cities.map((city) => ({ value: city.demographics.generalGenderMix.female, weight: 1 })))
   };
 
   const nightlifeGender = {
