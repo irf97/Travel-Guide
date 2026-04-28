@@ -145,6 +145,14 @@ export const siteFeatures: SiteFeature[] = [
     group: "debug",
     description: "Backend health/status check for database, storage, AI, and providers.",
     acceptance: ["returns JSON", "shows DB status", "shows provider status"]
+  },
+  {
+    title: "City Model Debug API",
+    href: "/api/debug/city-model",
+    status: "debug",
+    group: "debug",
+    description: "Runtime schema inspection endpoint for stored city-intelligence keys, useful before adding new fields to UI/API code.",
+    acceptance: ["returns sample city keys", "returns demographics keys", "returns safe model notes"]
   }
 ];
 
