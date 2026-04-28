@@ -43,6 +43,14 @@ export const siteFeatures: SiteFeature[] = [
     acceptance: ["visual slider visible", "city planner changes with sliders", "save plan works", "city JSON opens"]
   },
   {
+    title: "Demographics Dashboard",
+    href: "/demographics",
+    status: "working",
+    group: "core",
+    description: "Human-readable gender, nightlife gender, nationality mix, local/tourist share, and confidence dashboard.",
+    acceptance: ["aggregated gender metrics render", "nationality mix renders", "top-100 table renders", "city links and country JSON links work"]
+  },
+  {
     title: "Product Lab",
     href: "/lab",
     status: "working",
@@ -97,6 +105,14 @@ export const siteFeatures: SiteFeature[] = [
     group: "intelligence",
     description: "Machine-readable stored ranking logic matching the UI, including passport, gender, weather, pulse, venues, and tourism.",
     acceptance: ["returns ranked cities", "supports passport", "supports gender", "returns city links and visual slides"]
+  },
+  {
+    title: "Demographics API",
+    href: "/api/demographics?continent=Europe&minFemaleNightlife=40&top=25",
+    status: "working",
+    group: "intelligence",
+    description: "Machine-readable demographic layer with gender aggregates, nightlife gender, nationality mix, local/tourist share, and confidence.",
+    acceptance: ["returns aggregate gender", "returns aggregate nationality mix", "supports country/continent filters", "returns city-level demographic rows"]
   },
   {
     title: "City Intelligence API",
