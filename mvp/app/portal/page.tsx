@@ -9,12 +9,14 @@ const routeGroups = [
       { href: "/demographics", title: "Demographics", body: "Gender, nightlife gender, nationality mix, and local/tourist share dashboard." },
       { href: "/trips", title: "Trips", body: "Anonymous saved-trip memory." },
       { href: "/lab", title: "Lab", body: "Functional city comparison and route logic tools." },
+      { href: "/qa", title: "QA Smoke Test", body: "Deployment health dashboard for data coverage, APIs, feature registry, and model checks." },
       { href: "/functionality", title: "Functionality Index", body: "Human-readable feature map and acceptance checks." }
     ]
   },
   {
     title: "Stored data APIs",
     routes: [
+      { href: "/api/qa/smoke", title: "QA smoke", body: "Machine-readable deployment smoke test summary." },
       { href: "/api/rankings?passport=turkish&gender=nightlife-balanced&top=25", title: "Stored rankings", body: "Machine-readable ranking logic with passport, gender, pulse, weather, venues, tourism, and city links." },
       { href: "/api/demographics?continent=Europe&minFemaleNightlife=40&top=25", title: "Demographics", body: "Machine-readable gender and nationality layer with country/continent filters." },
       { href: "/api/functionality/status", title: "Functionality status", body: "Machine-readable feature map and top-100 audit summary." },
@@ -59,8 +61,10 @@ export default function PortalPage() {
         <Metric label="Runtime source" value="Stored" />
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
+        <a href="/qa" className="rounded-full bg-emerald-200 px-4 py-2 text-sm font-black text-slate-950">Open QA</a>
         <a href="/functionality" className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950">Open feature index</a>
         <a href="/demographics" className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300">Open demographics</a>
+        <a href="/api/qa/smoke" className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300">Open QA JSON</a>
         <a href="/api/functionality/status" className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300">Open status JSON</a>
         <a href="/api/rankings?passport=turkish&gender=nightlife-balanced&top=25" className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300">Open rankings JSON</a>
         <a href="/audit" className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300">Open audit dashboard</a>
