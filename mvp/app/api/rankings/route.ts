@@ -47,6 +47,11 @@ function genderPass(city: CityIntelligence, mode: GenderMode) {
   return Math.abs(night.male - night.female) <= 10;
 }
 
+function nationalityShare(city: CityIntelligence, nationality: string | null) {
+  if (!nationality) return 0;
+  return city.demographics.touristNationalityMix.find((item) => item.label.toLowerCase() === nationality.toLowerCase())?.share ?? 0;
+}
+
 function makeIntent(input: { budget: number; nights: number; month: MonthName; styles: TravelStyle[]; wanted: FeatureKey[]; avoid: AvoidKey[] }) {
   const intent = defaultIntent();
   intent.budget.per_person_eur = input.budget;
@@ -66,6 +71,7 @@ export async function GET(request: Request) {
   const month = parseMonth(url.searchParams.get("month"));
   const passport = parsePassport(url.searchParams.get("passport"));
   const gender = parseGender(url.searchParams.get("gender"));
+  const nationality = url.searchParams.get("nationality")?.trim() || null;
   const budget = Number(url.searchParams.get("budget") ?? 1000);
   const nights = Number(url.searchParams.get("nights") ?? 14);
   const top = Math.max(1, Math.min(100, Number(url.searchParams.get("top") ?? 25)));
@@ -80,13 +86,15 @@ export async function GET(request: Request) {
   const ranked = getAllCityIntelligence()
     .filter((city) => !country || city.country.toLowerCase() === country.toLowerCase())
     .filter((city) => !continent || city.continent.toLowerCase() === continent.toLowerCase())
+    .filter((city) => !nationality || nationalityShare(city, nationality) > 0)
     .filter((city) => genderPass(city, gender))
-    .filter((city) => !query || `${city.name} ${city.country} ${city.continent} ${city.types.join(" ")} ${city.best_neighborhoods.join(" ")}`.toLowerCase().includes(query))
+    .filter((city) => !query || `${city.name} ${city.country} ${city.continent} ${city.types.join(" ")} ${city.best_neighborhoods.join(" ")} ${city.demographics.touristNationalityMix.map((item) => item.label).join(" ")}`.toLowerCase().includes(query))
     .map((city) => {
       const base = scoreCity(city, intent);
       const passportResult = passportFit(city, passport);
       const weather = city.monthlyWeather[month];
-      const storedBoost = (city.pulse.demandPressure - 50) * 0.055 + (city.venues.densityScore - 50) * 0.045 + (city.tourism.cityTourismDemandScore - 50) * 0.045 + (weather.weatherComfort - 50) * 0.04;
+      const selectedNationalityShare = nationalityShare(city, nationality);
+      const storedBoost = (city.pulse.demandPressure - 50) * 0.055 + (city.venues.densityScore - 50) * 0.045 + (city.tourism.cityTourismDemandScore - 50) * 0.045 + (weather.weatherComfort - 50) * 0.04 + selectedNationalityShare * 0.12;
       const genderScore = city.demographics.genderBalanceScore;
       const score = clamp(base.score + storedBoost + passportResult.score * 0.055 + genderScore * 0.035 - 9);
       return {
@@ -102,6 +110,9 @@ export async function GET(request: Request) {
         passportLabel: passportResult.label,
         genderScore,
         nightlifeGenderMix: city.demographics.nightlifeGenderMix,
+        nationalityFilter: nationality,
+        nationalityShare: selectedNationalityShare,
+        touristNationalityMix: city.demographics.touristNationalityMix,
         weatherComfort: weather.weatherComfort,
         pulseDemand: city.pulse.demandPressure,
         pulseRisk: city.pulse.riskScore,
@@ -123,10 +134,11 @@ export async function GET(request: Request) {
 
   return ok({
     status: "stored-ranking",
-    input: { month, passport, gender, budget, nights, top, country, continent, query, styles, features: wanted, avoid },
+    input: { month, passport, gender, nationality, budget, nights, top, country, continent, query, styles, features: wanted, avoid },
     totalReturned: ranked.length,
     routes: {
       rankingsPage: "/rankings",
+      demographicsPage: "/demographics",
       worldPage: "/",
       auditPage: "/audit",
       functionalityPage: "/functionality"
