@@ -9,19 +9,57 @@
   --muted: 222 20% 68%;
   --border: 220 18% 22%;
   --primary: 192 90% 74%;
+  --theme-bg-a: rgba(125, 211, 252, 0.13);
+  --theme-bg-b: rgba(192, 132, 252, 0.115);
+  --theme-start: #080d17;
+  --theme-mid: #0d1323;
+  --theme-end: #090d16;
+  --theme-accent: #bae6fd;
+}
+
+html[data-theme="ocean"] {
+  --theme-bg-a: rgba(45, 212, 191, 0.17);
+  --theme-bg-b: rgba(56, 189, 248, 0.12);
+  --theme-start: #031b24;
+  --theme-mid: #062d3f;
+  --theme-end: #020b13;
+  --theme-accent: #67e8f9;
+}
+
+html[data-theme="sunset"] {
+  --theme-bg-a: rgba(251, 146, 60, 0.16);
+  --theme-bg-b: rgba(244, 114, 182, 0.12);
+  --theme-start: #1b1020;
+  --theme-mid: #281521;
+  --theme-end: #0c0710;
+  --theme-accent: #fed7aa;
+}
+
+html[data-theme="forest"] {
+  --theme-bg-a: rgba(74, 222, 128, 0.13);
+  --theme-bg-b: rgba(20, 184, 166, 0.11);
+  --theme-start: #06150d;
+  --theme-mid: #0c2418;
+  --theme-end: #030a06;
+  --theme-accent: #bbf7d0;
 }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {
   min-height: 100vh;
+  padding-bottom: 8.5rem;
   background:
-    radial-gradient(circle at 12% 0%, rgba(125, 211, 252, 0.13), transparent 32rem),
-    radial-gradient(circle at 88% 4%, rgba(192, 132, 252, 0.115), transparent 34rem),
-    linear-gradient(180deg, #080d17 0%, #0d1323 48%, #090d16 100%);
+    radial-gradient(circle at 12% 0%, var(--theme-bg-a), transparent 32rem),
+    radial-gradient(circle at 88% 4%, var(--theme-bg-b), transparent 34rem),
+    linear-gradient(180deg, var(--theme-start) 0%, var(--theme-mid) 48%, var(--theme-end) 100%);
   color: hsl(var(--foreground));
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+}
+
+@media (min-width: 768px) {
+  body { padding-bottom: 6.5rem; }
 }
 
 ::selection { background: rgba(125, 211, 252, 0.28); }
@@ -44,3 +82,6 @@ input, select, textarea {
 .score-fill {
   background: linear-gradient(90deg, #a7f3d0, #bae6fd, #ddd6fe);
 }
+
+.theme-accent-bg { background: var(--theme-accent); }
+.theme-accent-text { color: var(--theme-accent); }
