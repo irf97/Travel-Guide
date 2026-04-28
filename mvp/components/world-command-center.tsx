@@ -1,171 +1,169 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useMemo, useState } from "react";
 import { continents, type Continent } from "@/lib/world-data";
-import { getAllCityIntelligence, type CityIntelligence } from "@/lib/city-intelligence";
+import { getAllCityIntelligence, type CityIntelligence, type MonthName } from "@/lib/city-intelligence";
+import { passportFit, type PassportProfile } from "@/lib/passport";
 import { defaultIntent } from "@/lib/extraction";
 import { scoreCity } from "@/lib/scoring";
 import type { AvoidKey, FeatureKey, TravelStyle } from "@/lib/types";
 import { Real3DGlobe } from "@/components/real-3d-globe";
-import s from "./world-command.module.css";
 
 type TopN = 10 | 25 | 50 | 100;
-type Ranked = { city: CityIntelligence; score: number; cost: number; globalRank: number; continentRank: number; featureFit: number; riskPenalty: number; seasonality: number; memoryBoost: number };
-type SaveState = "idle" | "saving" | "saved" | "fallback" | "error";
-type MemorySummary = { favoriteCityIds: string[]; rejectedCityIds: string[]; preferredBudget: string | null; preferredGoal: string | null; preferredMonth: string | null; eventCount: number; savedTripCount: number };
-type CityIntel = { weather?: { temperatureC: number | null; precipitationProbability: number | null; windSpeedKmh: number | null; comfortScore: number }; pulse?: { articleCount: number; riskScore: number; momentumScore: number; demandPressureScore: number; confidence: string }; venueDensity?: { bars: number; restaurants: number; clubs: number; socialSurfaceArea: number; confidence: string }; derived?: { outdoorNightlifeScore: number; tourismDemandProxy: number; confidence: string } };
+type GenderMode = "any" | "balanced" | "female-leaning" | "male-leaning" | "nightlife-balanced";
+type Ranked = { city: CityIntelligence; score: number; globalRank: number; continentRank: number; cost: number; featureFit: number; riskPenalty: number; passportScore: number; passportLabel: string; genderScore: number; memoryBoost: number };
 
-const monthOptions = ["March", "April", "May", "June", "July", "August", "September", "October"];
-const travelStyleOptions: Array<{ label: string; value: TravelStyle }> = [
-  { label: "Balanced", value: "balanced" }, { label: "Social", value: "social" }, { label: "Nightlife", value: "nightlife" }, { label: "Culture", value: "culture" }, { label: "Food", value: "food" }, { label: "Budget", value: "budget" }, { label: "Digital Nomad", value: "remote-work" }
+const months: MonthName[] = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const passportOptions: Array<{ label: string; value: PassportProfile }> = [
+  { label: "Any", value: "any" }, { label: "EU", value: "eu" }, { label: "UK", value: "uk" }, { label: "US/Canada", value: "us-canada" }, { label: "Turkish", value: "turkish" }, { label: "Visa flexible", value: "visa-flexible" }
 ];
-const featureOptions: Array<{ label: string; value: FeatureKey }> = [
-  { label: "Nightlife", value: "bars" }, { label: "Clubs", value: "clubs" }, { label: "Food Culture", value: "local_food" }, { label: "Historic", value: "historic" }, { label: "Sea", value: "sea" }, { label: "International", value: "international_crowd" }, { label: "Young adults", value: "young_adults" }, { label: "Coworking", value: "coworking" }
+const genderOptions: Array<{ label: string; value: GenderMode }> = [
+  { label: "Any", value: "any" }, { label: "Balanced", value: "balanced" }, { label: "Female-leaning", value: "female-leaning" }, { label: "Male-leaning", value: "male-leaning" }, { label: "Nightlife balanced", value: "nightlife-balanced" }
 ];
-const avoidOptions: Array<{ label: string; value: AvoidKey }> = [
-  { label: "Too Crowded", value: "too_crowded" }, { label: "Tourist Traps", value: "tourist_traps" }, { label: "Expensive", value: "expensive" }, { label: "Car Dependent", value: "car_dependent" }, { label: "Dead Nightlife", value: "dead_nightlife" }
+const travelStyles: Array<{ label: string; value: TravelStyle }> = [
+  { label: "Social", value: "social" }, { label: "Nightlife", value: "nightlife" }, { label: "Culture", value: "culture" }, { label: "Food", value: "food" }, { label: "Budget", value: "budget" }, { label: "Remote", value: "remote-work" }
+];
+const features: Array<{ label: string; value: FeatureKey }> = [
+  { label: "Bars", value: "bars" }, { label: "Clubs", value: "clubs" }, { label: "Food", value: "local_food" }, { label: "Historic", value: "historic" }, { label: "Sea", value: "sea" }, { label: "International", value: "international_crowd" }, { label: "Young adults", value: "young_adults" }
+];
+const avoids: Array<{ label: string; value: AvoidKey }> = [
+  { label: "Crowded", value: "too_crowded" }, { label: "Tourist traps", value: "tourist_traps" }, { label: "Expensive", value: "expensive" }, { label: "Car dependent", value: "car_dependent" }, { label: "Dead nightlife", value: "dead_nightlife" }
 ];
 
-function makeIntent(input: { budget: number; nights: number; month: string; travelStyles: TravelStyle[]; features: FeatureKey[]; avoid: AvoidKey[] }) {
+function clamp(value: number) { return Math.max(0, Math.min(100, Math.round(value))); }
+function toggle<T extends string>(items: T[], value: T) { return items.includes(value) ? items.filter((item) => item !== value) : [...items, value]; }
+function genderPass(city: CityIntelligence, mode: GenderMode) {
+  const night = city.demographics.nightlifeGenderMix;
+  if (mode === "any") return true;
+  if (mode === "balanced") return city.demographics.genderBalanceScore >= 88;
+  if (mode === "female-leaning") return night.female >= 45;
+  if (mode === "male-leaning") return night.male >= 54;
+  return Math.abs(night.male - night.female) <= 10;
+}
+function makeIntent(input: { budget: number; nights: number; month: MonthName; styles: TravelStyle[]; wanted: FeatureKey[]; avoid: AvoidKey[] }) {
   const intent = defaultIntent();
   intent.budget.per_person_eur = input.budget;
   intent.budget.sensitivity = input.budget <= 800 ? "high" : input.budget <= 1300 ? "medium" : "low";
   intent.dates.month = input.month;
   intent.dates.nights = input.nights;
-  intent.travel_style = input.travelStyles.length ? input.travelStyles : ["balanced"];
+  intent.travel_style = input.styles.length ? input.styles : ["balanced"];
   Object.keys(intent.desired_features).forEach((key) => { intent.desired_features[key as FeatureKey] = false; });
-  input.features.forEach((feature) => { intent.desired_features[feature] = true; });
+  input.wanted.forEach((feature) => { intent.desired_features[feature] = true; });
   Object.keys(intent.avoid).forEach((key) => { intent.avoid[key as AvoidKey] = false; });
   input.avoid.forEach((avoid) => { intent.avoid[avoid] = true; });
   return intent;
 }
-function toggleValue<T extends string>(items: T[], value: T) { return items.includes(value) ? items.filter((item) => item !== value) : [...items, value]; }
-function clamp(value: number) { return Math.max(0, Math.min(100, Math.round(value))); }
 
 export function WorldCommandCenter() {
-  const storedCities = useMemo(() => getAllCityIntelligence(), []);
+  const cities = useMemo(() => getAllCityIntelligence(), []);
+  const [query, setQuery] = useState("");
   const [continent, setContinent] = useState<Continent | "All">("All");
   const [topN, setTopN] = useState<TopN>(25);
-  const [selectedId, setSelectedId] = useState("istanbul-turkiye");
-  const [saveState, setSaveState] = useState<SaveState>("idle");
-  const [saveMessage, setSaveMessage] = useState("");
+  const [month, setMonth] = useState<MonthName>("July");
   const [budget, setBudget] = useState(1000);
   const [nights, setNights] = useState(14);
-  const [month, setMonth] = useState("July");
-  const [travelStyles, setTravelStyles] = useState<TravelStyle[]>(["social", "culture", "food"]);
-  const [features, setFeatures] = useState<FeatureKey[]>(["bars", "local_food", "historic", "international_crowd", "young_adults"]);
+  const [passport, setPassport] = useState<PassportProfile>("any");
+  const [genderMode, setGenderMode] = useState<GenderMode>("any");
+  const [styles, setStyles] = useState<TravelStyle[]>(["social", "culture", "food"]);
+  const [wanted, setWanted] = useState<FeatureKey[]>(["bars", "clubs", "local_food", "international_crowd"]);
   const [avoid, setAvoid] = useState<AvoidKey[]>(["car_dependent"]);
-  const [query, setQuery] = useState("");
-  const [memory, setMemory] = useState<MemorySummary | null>(null);
-  const [intel, setIntel] = useState<CityIntel | null>(null);
-  const [showStoredPulse, setShowStoredPulse] = useState(false);
+  const [selectedId, setSelectedId] = useState("barcelona-spain");
+  const [expandedPulseId, setExpandedPulseId] = useState<string | null>("barcelona-spain");
+  const [saveMessage, setSaveMessage] = useState("");
 
-  const intent = useMemo(() => makeIntent({ budget, nights, month, travelStyles, features, avoid }), [budget, nights, month, travelStyles, features, avoid]);
-
-  useEffect(() => { fetch("/api/memory").then((r) => r.json()).then((j) => setMemory(j?.data?.memory ?? null)).catch(() => setMemory(null)); }, []);
-
+  const intent = useMemo(() => makeIntent({ budget, nights, month, styles, wanted, avoid }), [budget, nights, month, styles, wanted, avoid]);
   const ranked = useMemo<Ranked[]>(() => {
-    const q = query.trim().toLowerCase();
-    const favorites = new Set(memory?.favoriteCityIds ?? []);
-    const rejected = new Set(memory?.rejectedCityIds ?? []);
-    const pool = q ? storedCities.filter((city) => `${city.name} ${city.country} ${city.continent} ${city.types.join(" ")} ${city.best_neighborhoods.join(" ")}`.toLowerCase().includes(q)) : storedCities;
-    const base = pool.map((city) => {
-      const result = scoreCity(city, intent);
-      const memoryBoost = favorites.has(city.id) ? 6 : rejected.has(city.id) ? -12 : 0;
-      const storedBoost = Math.round((city.pulse.demandPressure - 50) * 0.04 + (city.venues.densityScore - 50) * 0.04 + (city.tourism.cityTourismDemandScore - 50) * 0.04);
-      return { city, score: clamp(result.score + memoryBoost + storedBoost), cost: result.estimatedCost, featureFit: result.featureFit, riskPenalty: result.riskPenalty, seasonality: result.seasonality, memoryBoost };
-    }).sort((a, b) => b.score - a.score);
+    const q = query.toLowerCase().trim();
+    const rows = cities
+      .filter((city) => continent === "All" || city.continent === continent)
+      .filter((city) => genderPass(city, genderMode))
+      .filter((city) => !q || `${city.name} ${city.country} ${city.continent} ${city.best_neighborhoods.join(" ")} ${city.types.join(" ")}`.toLowerCase().includes(q))
+      .map((city) => {
+        const base = scoreCity(city, intent);
+        const passportResult = passportFit(city, passport);
+        const weather = city.monthlyWeather[month];
+        const storedBoost = (city.pulse.demandPressure - 50) * 0.055 + (city.venues.densityScore - 50) * 0.045 + (city.tourism.cityTourismDemandScore - 50) * 0.045 + (weather.weatherComfort - 50) * 0.04;
+        const genderScore = city.demographics.genderBalanceScore;
+        const score = clamp(base.score + storedBoost + passportResult.score * 0.055 + genderScore * 0.035 - 9);
+        return { city, score, cost: base.estimatedCost, globalRank: 0, continentRank: 0, featureFit: base.featureFit, riskPenalty: base.riskPenalty, passportScore: passportResult.score, passportLabel: passportResult.label, genderScore, memoryBoost: 0 };
+      })
+      .sort((a, b) => b.score - a.score);
     const counts = new Map<string, number>();
-    return base.map((item, i) => { const n = (counts.get(item.city.continent) ?? 0) + 1; counts.set(item.city.continent, n); return { ...item, globalRank: i + 1, continentRank: n }; });
-  }, [intent, query, memory, storedCities]);
+    return rows.map((row, index) => {
+      const continentRank = (counts.get(row.city.continent) ?? 0) + 1;
+      counts.set(row.city.continent, continentRank);
+      return { ...row, globalRank: index + 1, continentRank };
+    });
+  }, [cities, continent, genderMode, query, intent, passport, month]);
 
-  const visible = ranked.filter((x) => continent === "All" || x.city.continent === continent).slice(0, topN);
-  const selected = ranked.find((x) => x.city.id === selectedId) ?? visible[0] ?? ranked[0];
-  const topCities = visible.slice(0, 5);
-  const activeFilters = `${month} · €${budget} · ${nights} nights · ${travelStyles.join("/") || "balanced"}`;
-
-  useEffect(() => {
-    if (!selected) return;
-    setShowStoredPulse(false);
-    fetch("/api/memory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ eventType: "city_view", cityId: selected.city.id, metadata: { source: "world", score: selected.score } }) }).catch(() => {});
-    const params = new URLSearchParams({ city: selected.city.name, lat: String(selected.city.lat), lng: String(selected.city.lng), nightlifeScore: String(selected.city.nightlife_score), foodScore: String(selected.city.food_culture_score), socialScore: String(selected.city.social_density_score) });
-    fetch(`/api/live/city-intelligence?${params.toString()}`).then((r) => r.json()).then((j) => setIntel(j?.data ?? null)).catch(() => setIntel(null));
-  }, [selected?.city.id]);
-
-  async function recordMemory(eventType: "city_favorite" | "city_reject" | "city_select") {
-    if (!selected) return;
-    await fetch("/api/memory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ eventType, cityId: selected.city.id, metadata: { score: selected.score, filters: activeFilters } }) }).catch(() => {});
-    const refreshed = await fetch("/api/memory").then((r) => r.json()).catch(() => null);
-    setMemory(refreshed?.data?.memory ?? memory);
-    setSaveMessage(eventType === "city_reject" ? "City downranked in anonymous memory." : eventType === "city_favorite" ? "City favorited in anonymous memory." : "City selection remembered.");
-    setSaveState("saved");
-  }
+  const visible = ranked.slice(0, topN);
+  const selected = ranked.find((row) => row.city.id === selectedId) ?? visible[0] ?? ranked[0];
+  const activePulse = ranked.find((row) => row.city.id === expandedPulseId) ?? selected;
+  const auditComplete = cities.slice(0, 100).filter((city) => city.visuals?.slides?.length >= 5 && city.pulse?.headlines?.length && city.demographics?.touristNationalityMix?.length && city.identityVenueCounts?.locals && city.monthlyWeather?.July && city.tourism?.cityTourismDemandScore).length;
 
   async function saveSelectedTrip() {
     if (!selected) return;
-    setSaveState("saving"); setSaveMessage("Saving selected city...");
-    try {
-      const response = await fetch("/api/trips", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: `${selected.city.name}, ${selected.city.country}`, cityId: selected.city.id, month, budgetLevel: budget <= 800 ? "Low" : budget <= 1300 ? "Medium" : "High", goal: travelStyles.join("-") || "balanced", computedScore: selected.score, notes: `Saved from /world. Filters: ${activeFilters}. Global rank #${selected.globalRank}; continent rank #${selected.continentRank}. Estimated cost €${selected.cost}. Feature fit ${selected.featureFit}. Risk penalty ${selected.riskPenalty}. Memory boost ${selected.memoryBoost}. Stored pulse ${selected.city.pulse.demandPressure}. Desired: ${features.join(", ")}. Avoid: ${avoid.join(", ")}.` }) });
-      const json = await response.json(); const status = json?.data?.status;
-      setSaveState(status === "live" ? "saved" : "fallback"); setSaveMessage(json?.data?.message ?? "Trip saved.");
-      await recordMemory("city_select");
-    } catch (error) { setSaveState("error"); setSaveMessage(error instanceof Error ? error.message : "Save failed."); }
+    const response = await fetch("/api/trips", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: `${selected.city.name}, ${selected.city.country}`, cityId: selected.city.id, month, budgetLevel: budget <= 800 ? "Low" : budget <= 1300 ? "Medium" : "High", goal: styles.join("-"), computedScore: selected.score, notes: `Saved from globe. Passport ${passport}: ${selected.passportLabel}. Gender filter ${genderMode}. Pulse ${selected.city.pulse.demandPressure}. Venue density ${selected.city.venues.densityScore}.` }) });
+    const json = await response.json();
+    setSaveMessage(json?.data?.message ?? "Trip saved.");
   }
 
-  return <main className={s.shell}>
-    <div className={s.space}><div className={s.stars} /></div>
-    <nav className={s.nav}>
-      <Link href="/portal" className={s.brand}><span className={s.logo}/><span>SOCIAL TRAVEL<br/><span style={{fontWeight:600,letterSpacing:".08em"}}>INTELLIGENCE OS</span></span></Link>
-      <div className={s.tabs}><span className={`${s.tab} ${s.tabActive}`}>World Intelligence</span><Link className={s.tab} href="/rankings">Rankings</Link><Link className={s.tab} href="/lab">Comparisons</Link><Link className={s.tab} href="/trips">Saved Trips</Link><Link className={s.tab} href="/portal">Command Hub</Link></div>
-      <div className={s.rightNav}><input className={s.search} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search cities, neighborhoods..."/><div className={s.avatar}>I</div></div>
-    </nav>
-    <section className={s.layout}>
-      <aside className={`${s.panel} ${s.left}`}>
-        <div className={s.panelTitle}><span className={s.icon}>⌖</span>Explore the world</div>
-        <Control icon="🌐" title="Continent"><div className={s.selectLine}><span>{continent === "All" ? "All Continents" : continent}</span><span>⌄</span></div><div className={s.pills} style={{marginTop:10}}><Pill active={continent === "All"} onClick={() => setContinent("All")}>All</Pill>{continents.map(c => <Pill key={c} active={continent === c} onClick={() => setContinent(c)}>{c}</Pill>)}</div></Control>
-        <Control icon="〽" title="Budget"><div className={s.rangeLabels}><span>€500</span><span>€{budget}</span><span>€2500+</span></div><input className={s.range} type="range" min={500} max={2500} step={50} value={budget} onChange={(event)=>setBudget(Number(event.target.value))}/></Control>
-        <Control icon="▣" title="Month"><div className={s.pills}>{monthOptions.map((option)=><Pill key={option} active={month===option} onClick={()=>setMonth(option)}>{option.slice(0,3)}</Pill>)}</div></Control>
-        <Control icon="▤" title="Stay length"><div className={s.rangeLabels}><span>3</span><span>{nights} nights</span><span>30</span></div><input className={s.range} type="range" min={3} max={30} step={1} value={nights} onChange={(event)=>setNights(Number(event.target.value))}/></Control>
-        <Control icon="✈" title="Travel style"><div className={s.pills}>{travelStyleOptions.map((option)=><Pill key={option.value} active={travelStyles.includes(option.value)} onClick={()=>setTravelStyles(toggleValue(travelStyles, option.value))}>{option.label}</Pill>)}</div></Control>
-        <Control icon="☆" title="Desired features"><div className={s.pills}>{featureOptions.map((option)=><Pill key={option.value} active={features.includes(option.value)} onClick={()=>setFeatures(toggleValue(features, option.value))}>{option.label}</Pill>)}</div></Control>
-        <Control icon="🛡" title="Avoidances"><div className={s.pills}>{avoidOptions.map((option)=><Pill key={option.value} active={avoid.includes(option.value)} onClick={()=>setAvoid(toggleValue(avoid, option.value))}>{option.label}</Pill>)}</div></Control>
-        <Control icon="🏆" title="Ranking depth"><div className={s.pills}>{([10,25,50,100] as TopN[]).map(n=><Pill key={n} active={topN===n} onClick={()=>setTopN(n)}>Top {n}</Pill>)}</div></Control>
-        <button className={s.scan} onClick={()=>visible[0] && setSelectedId(visible[0].city.id)}>Run world scan</button>
-        <a className={s.scan} style={{display:"block", textAlign:"center", textDecoration:"none", marginTop:10}} href="/rankings">Open full ranking page</a>
-        <div style={{marginTop:10,fontSize:11,lineHeight:1.5,color:"#94a3b8"}}>Ranking uses controls + anonymous memory + stored city intelligence. Live checks are debug-only.</div>
-      </aside>
-      <section className={s.stage}>
-        <button className={`${s.floatStat} ${s.pulse}`} onClick={() => setShowStoredPulse((value) => !value)} style={{textAlign:"left", cursor:"pointer"}}><div className={s.statLabel}>Stored city pulse<br/>Click for detail</div><div style={{display:"flex",alignItems:"center",gap:12}}><div className={s.spark}/><div className={s.statValue}>{selected?.city.pulse.demandPressure ?? visible[0]?.score ?? 0}</div></div></button>
-        <div className={`${s.floatStat} ${s.analyzed}`}><div className={s.statLabel}>Cities matched</div><div style={{fontSize:30,fontWeight:950}}>{visible.length}</div><div style={{fontSize:11,color:"#86efac"}}>● Memory + stored intelligence</div></div>
-        <Real3DGlobe cities={visible} selectedId={selected?.city.id ?? ""} onSelect={setSelectedId}/>
-        {showStoredPulse && selected ? <div style={{position:"absolute",left:"50%",bottom:32,transform:"translateX(-50%)",width:"min(560px, calc(100vw - 2rem))",border:"1px solid rgba(125,211,252,.28)",background:"rgba(15,23,42,.86)",backdropFilter:"blur(18px)",borderRadius:24,padding:18,zIndex:6,boxShadow:"0 24px 80px rgba(0,0,0,.35)"}}>
-          <div style={{display:"flex",justifyContent:"space-between",gap:12}}><div><div className={s.statLabel}>Stored pulse for {selected.city.name}</div><h3 style={{fontSize:22,fontWeight:950}}>Demand {selected.city.pulse.demandPressure} · Momentum {selected.city.pulse.eventMomentum}</h3></div><button className={s.pill} onClick={()=>setShowStoredPulse(false)}>Close</button></div>
-          <p style={{marginTop:10,fontSize:13,lineHeight:1.6,color:"#cbd5e1"}}>{selected.city.pulse.explanation}</p>
-          <div style={{marginTop:12,display:"grid",gap:8}}>{selected.city.pulse.headlines.map((headline)=><div key={headline} style={{border:"1px solid rgba(255,255,255,.1)",background:"rgba(255,255,255,.05)",borderRadius:14,padding:"9px 11px",fontSize:12,color:"#e2e8f0"}}>{headline}</div>)}</div>
-        </div> : null}
-      </section>
-      <aside className={`${s.panel} ${s.right}`}>
-        <div className={s.panelTitle}><span className={s.icon}>◉</span>Selected city <span style={{marginLeft:"auto"}}>{selected?.city.visuals.flag}</span></div>
-        <div className={s.cityHero}/>
-        <div className={s.rightBody}>{selected ? <>
-          <div style={{display:"flex",justifyContent:"space-between",gap:16,alignItems:"flex-start"}}><div><h2 style={{fontSize:24,fontWeight:950}}>{selected.city.name}, {selected.city.country}</h2><p style={{fontSize:12,color:"#93c5fd"}}>⌖ {selected.city.continent} • {activeFilters}</p></div><div className={s.scoreRing}>{selected.score}<span style={{fontSize:11,fontWeight:700}}>/100</span></div></div>
-          <div style={{marginTop:12,display:"flex",gap:8,flexWrap:"wrap"}}><button className={s.scan} style={{margin:0}} onClick={saveSelectedTrip} disabled={saveState === "saving"}>{saveState === "saving" ? "Saving..." : "Save trip"}</button><button className={s.pill} onClick={()=>recordMemory("city_favorite")}>Favorite</button><button className={s.pill} onClick={()=>recordMemory("city_reject")}>Reject</button><a className={s.pill} href={`/cities/${selected.city.id}`}>City page</a><Link className={s.pill} href="/trips">View trips</Link></div>
-          {saveMessage ? <div style={{marginTop:10,border:"1px solid rgba(255,255,255,.12)",borderRadius:14,padding:"10px 12px",fontSize:12,color:saveState === "error" ? "#fca5a5" : saveState === "fallback" ? "#fde68a" : "#bbf7d0",background:"rgba(15,23,42,.55)"}}>{saveMessage}</div> : null}
-          <div style={{marginTop:12,display:"flex",gap:8,overflowX:"auto",paddingBottom:4}}>{selected.city.visuals.slides.map((slide)=><div key={slide.kind} style={{minWidth:112,border:"1px solid rgba(255,255,255,.1)",background:"rgba(15,23,42,.52)",borderRadius:16,padding:10}}><div style={{fontSize:26}}>{slide.label}</div><div style={{marginTop:5,fontSize:11,fontWeight:900}}>{slide.title}</div></div>)}</div>
-          <div style={{marginTop:14,display:"grid",gap:10}}><Score label="Nightlife" value={selected.city.nightlife_score}/><Score label="Social Density" value={selected.city.social_density_score}/><Score label="Stored Pulse" value={selected.city.pulse.demandPressure}/><Score label="Venue Density" value={selected.city.venues.densityScore}/><Score label="Feature Fit" value={selected.featureFit}/><Score label="Seasonality" value={selected.seasonality}/><Score label="Memory Boost" value={50 + selected.memoryBoost}/>{intel?.weather ? <Score label="Live Weather Debug" value={intel.weather.comfortScore}/> : null}</div>
-          <div className={s.rankCards} style={{marginTop:16}}><div className={s.rankCard}><div className={s.statLabel}>Stored tourism</div><div style={{fontSize:18,fontWeight:950}}>{selected.city.tourism.cityTourismDemandScore}</div><div style={{fontSize:11,color:"#94a3b8"}}>Intl {selected.city.tourism.internationalTouristPressure}</div></div><div className={s.rankCard}><div className={s.statLabel}>Stored pulse</div><div style={{fontSize:18,fontWeight:950}}>{selected.city.pulse.articleCount} articles</div><div style={{fontSize:11,color:"#94a3b8"}}>Risk {selected.city.pulse.riskScore}</div></div><div className={s.rankCard}><div className={s.statLabel}>Venue model</div><div style={{fontSize:18,fontWeight:950}}>{selected.city.venues.bars} bars</div><div style={{fontSize:11,color:"#94a3b8"}}>{selected.city.venues.clubs} clubs</div></div></div>
-          <button className={s.scan} style={{marginTop:12,width:"100%"}} onClick={()=>setShowStoredPulse(true)}>Open stored pulse detail</button>
-          <div style={{marginTop:18}}><div className={s.controlHead} style={{justifyContent:"space-between"}}><span>Top filtered cities</span><span style={{color:"#67e8f9"}}>Risk penalty {selected.riskPenalty}</span></div>{topCities.map((x,i)=><button key={x.city.id} onClick={()=>setSelectedId(x.city.id)} className={`${s.topCity} ${x.city.id===selected.city.id?s.topCityActive:""}`}><span>{i+1}</span><span>{x.city.visuals.flag} {x.city.name}</span><b>{x.score}</b></button>)}</div>
-          <div style={{marginTop:18}}><div className={s.controlHead}>Matching neighborhoods</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>{selected.city.best_neighborhoods.slice(0,3).map((n,i)=><div key={n} className={s.rankCard} style={{padding:8}}><div style={{height:54,borderRadius:8,background:"linear-gradient(135deg,#164e63,#0f172a)"}}/><div style={{marginTop:7,fontSize:12,fontWeight:900}}>{n}</div><div style={{color:"#67e8f9",fontWeight:950}}>{Math.max(65, selected.score-i*4)}</div></div>)}</div></div>
-        </> : <p style={{color:"#cbd5e1"}}>No city matches the current filters. Loosen budget, search, or continent.</p>}</div>
-      </aside>
+  return <main className="min-h-screen px-4 py-8 text-white">
+    <section className="mx-auto max-w-7xl rounded-[2rem] border border-white/10 bg-white/[0.055] p-5 shadow-2xl shadow-sky-950/30 backdrop-blur-xl">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-200">Main globe intelligence page</p>
+          <h1 className="mt-2 text-4xl font-black tracking-[-0.055em] md:text-6xl">World globe command center</h1>
+          <p className="mt-3 max-w-3xl text-slate-300">The globe now uses the same stored city-intelligence layer as Rankings: passport fit, gender mix, stored pulse, tourism, venues, visuals, monthly weather, and city pages.</p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs font-black"><a className="rounded-full bg-sky-200 px-4 py-2 text-slate-950" href="/rankings">Rankings</a><a className="rounded-full border border-white/10 px-4 py-2 text-slate-300" href="/portal">Portal</a><a className="rounded-full border border-white/10 px-4 py-2 text-slate-300" href="/api/audit/top-100">Audit API</a></div>
+      </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-4">
+        <input className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search city, country, neighborhood" />
+        <select className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm" value={continent} onChange={(event)=>setContinent(event.target.value as Continent | "All")}><option>All</option>{continents.map((item)=><option key={item}>{item}</option>)}</select>
+        <select className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm" value={passport} onChange={(event)=>setPassport(event.target.value as PassportProfile)}>{passportOptions.map((item)=><option key={item.value} value={item.value}>{item.label}</option>)}</select>
+        <select className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm" value={genderMode} onChange={(event)=>setGenderMode(event.target.value as GenderMode)}>{genderOptions.map((item)=><option key={item.value} value={item.value}>{item.label}</option>)}</select>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-3"><Slider label="Budget" value={`€${budget}`} min={500} max={2500} step={50} state={budget} setState={setBudget}/><Slider label="Stay" value={`${nights} nights`} min={3} max={30} step={1} state={nights} setState={setNights}/><label className="rounded-2xl border border-white/10 bg-slate-950/50 p-4"><div className="mb-2 text-sm font-black">Month</div><select className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm" value={month} onChange={(event)=>setMonth(event.target.value as MonthName)}>{months.map((item)=><option key={item}>{item}</option>)}</select></label></div>
+      <ChipGroup title="Travel style" items={travelStyles} active={styles} onClick={(value)=>setStyles(toggle(styles, value))}/>
+      <ChipGroup title="Desired features" items={features} active={wanted} onClick={(value)=>setWanted(toggle(wanted, value))}/>
+      <ChipGroup title="Avoid" items={avoids} active={avoid} onClick={(value)=>setAvoid(toggle(avoid, value))}/>
+      <ChipGroup title="Globe density" items={[10,25,50,100].map((n)=>({label:`Top ${n}`, value:String(n)}))} active={[String(topN)]} onClick={(value)=>setTopN(Number(value) as TopN)}/>
     </section>
-    <footer className={s.bottom}><Bottom label="Filters" value={activeFilters}/><Bottom label="Matched cities" value={`${visible.length} visible`}/><Bottom label="Top city" value={visible[0] ? `${visible[0].city.name} ${visible[0].score}` : "None"}/><Bottom label="Memory" value={`${memory?.savedTripCount ?? 0} trips · ${memory?.eventCount ?? 0} signals`}/><div className={s.bottomItem}><button className={s.scan} style={{margin:0}} onClick={()=>visible[0] && setSelectedId(visible[0].city.id)}>Select top match ↗</button></div></footer>
+
+    <section className="mx-auto mt-6 grid max-w-7xl gap-6 xl:grid-cols-[.72fr_1.18fr_.72fr]">
+      <aside className="rounded-[2rem] border border-white/10 bg-white/[0.055] p-4 backdrop-blur-xl">
+        <h2 className="text-xl font-black">Top filtered cities</h2>
+        <div className="mt-4 grid gap-2">{visible.slice(0, 10).map((row)=><button key={row.city.id} onClick={()=>setSelectedId(row.city.id)} className={`rounded-2xl border p-3 text-left transition ${selected?.city.id === row.city.id ? "border-sky-200 bg-sky-200/10" : "border-white/10 bg-slate-950/45 hover:border-white/25"}`}><div className="flex justify-between gap-2"><span className="font-black">#{row.globalRank} {row.city.visuals.flag} {row.city.name}</span><b>{row.score}</b></div><p className="mt-1 text-xs text-slate-400">{row.passportLabel} · gender {row.genderScore} · pulse {row.city.pulse.demandPressure}</p></button>)}</div>
+      </aside>
+
+      <section className="relative min-h-[560px] overflow-hidden rounded-[2rem] border border-sky-200/15 bg-slate-950/50 backdrop-blur-xl">
+        <div className="absolute left-4 top-4 z-10 rounded-2xl border border-white/10 bg-slate-950/75 p-4 backdrop-blur-xl"><div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Matched cities</div><div className="text-4xl font-black">{visible.length}</div></div>
+        <button onClick={()=>setExpandedPulseId(selected?.city.id ?? null)} className="absolute right-4 top-4 z-10 rounded-2xl border border-sky-200/20 bg-sky-200/10 p-4 text-left backdrop-blur-xl"><div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Stored pulse</div><div className="text-4xl font-black text-sky-200">{selected?.city.pulse.demandPressure ?? 0}</div><div className="text-xs text-slate-400">Click for detail</div></button>
+        <Real3DGlobe cities={visible} selectedId={selected?.city.id ?? ""} onSelect={setSelectedId}/>
+      </section>
+
+      {selected ? <aside className="rounded-[2rem] border border-white/10 bg-white/[0.055] p-4 backdrop-blur-xl">
+        <div className="flex items-start justify-between gap-3"><div><h2 className="text-3xl font-black">{selected.city.visuals.flag} {selected.city.name}</h2><p className="text-sm text-slate-400">{selected.city.country} · #{selected.globalRank} global · #{selected.continentRank} {selected.city.continent}</p></div><div className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950">{selected.score}</div></div>
+        <div className="mt-4 flex gap-2"><button onClick={saveSelectedTrip} className="flex-1 rounded-full bg-emerald-200 px-4 py-3 text-sm font-black text-slate-950">Save trip</button><a href={`/cities/${selected.city.id}`} className="rounded-full border border-white/10 px-4 py-3 text-sm font-black text-slate-200">City page</a></div>
+        {saveMessage ? <div className="mt-3 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-3 text-sm text-emerald-100">{saveMessage}</div> : null}
+        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">{selected.city.visuals.slides.map((slide)=><div key={slide.kind} className="min-w-[116px] rounded-2xl border border-white/10 bg-slate-950/50 p-3"><div className="text-3xl">{slide.label}</div><div className="mt-2 text-xs font-black">{slide.title}</div></div>)}</div>
+        <div className="mt-4 grid gap-2"><Mini label="Passport" value={selected.passportScore}/><Mini label="Gender balance" value={selected.genderScore}/><Mini label="Pulse demand" value={selected.city.pulse.demandPressure}/><Mini label="Venue density" value={selected.city.venues.densityScore}/><Mini label="Tourism" value={selected.city.tourism.cityTourismDemandScore}/><Mini label="Weather" value={selected.city.monthlyWeather[month].weatherComfort}/></div>
+        <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-300">Nightlife gender: {selected.city.demographics.nightlifeGenderMix.male}% male · {selected.city.demographics.nightlifeGenderMix.female}% female · {selected.city.demographics.nightlifeGenderMix.unknown}% unknown</div>
+      </aside> : null}
+    </section>
+
+    {activePulse ? <section className="mx-auto mt-6 max-w-7xl rounded-[2rem] border border-sky-200/20 bg-sky-200/[0.055] p-5 backdrop-blur-xl">
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.16em] text-sky-200">Clickable stored pulse</p><h2 className="text-3xl font-black">{activePulse.city.name}: demand {activePulse.city.pulse.demandPressure}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{activePulse.city.pulse.explanation}</p></div><a href={`/cities/${activePulse.city.id}`} className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950">Open city page</a></div>
+      <div className="mt-4 grid gap-3 md:grid-cols-4"><Metric label="Articles" value={activePulse.city.pulse.articleCount}/><Metric label="Momentum" value={activePulse.city.pulse.eventMomentum}/><Metric label="Risk" value={activePulse.city.pulse.riskScore}/><Metric label="Demand" value={activePulse.city.pulse.demandPressure}/></div>
+      <div className="mt-4 grid gap-2 md:grid-cols-3">{activePulse.city.pulse.headlines.map((headline)=><div key={headline} className="rounded-2xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-200">{headline}</div>)}</div>
+    </section> : null}
+
+    <footer className="fixed bottom-2 left-1/2 z-40 flex w-[min(1050px,calc(100vw-1rem))] -translate-x-1/2 items-center gap-2 overflow-x-auto rounded-full border border-white/10 bg-slate-950/85 px-2 py-1.5 text-xs font-black text-slate-300 backdrop-blur-xl"><span className="shrink-0 rounded-full bg-white/10 px-3 py-1.5">{visible.length} visible</span><span className="shrink-0 rounded-full bg-white/10 px-3 py-1.5">Top: {visible[0]?.city.name ?? "none"}</span><span className="shrink-0 rounded-full bg-white/10 px-3 py-1.5">Passport: {passport}</span><span className="shrink-0 rounded-full bg-white/10 px-3 py-1.5">Gender: {genderMode}</span><span className="shrink-0 rounded-full bg-white/10 px-3 py-1.5">Audit: {auditComplete}/100</span><button className="shrink-0 rounded-full bg-sky-200 px-3 py-1.5 text-slate-950" onClick={()=>visible[0] && setSelectedId(visible[0].city.id)}>Select top match</button></footer>
   </main>;
 }
 
-function Control({icon,title,children}:{icon:string;title:string;children:React.ReactNode}){return <div className={s.control}><div className={s.controlHead}><span className={s.icon}>{icon}</span>{title}</div>{children}</div>}
-function Pill({active,onClick,children}:{active:boolean;onClick:()=>void;children:React.ReactNode}){return <button type="button" onClick={onClick} className={`${s.pill} ${active?s.pillActive:""}`}>{children}</button>}
-function Score({label,value}:{label:string;value:number}){return <div><div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:900,textTransform:"uppercase"}}><span>{label}</span><span>{value}</span></div><div className={s.bar}><div className={s.barFill} style={{width:`${Math.max(0, Math.min(100, value))}%`}}/></div></div>}
-function Bottom({label,value}:{label:string;value:string}){return <div className={s.bottomItem}><div className={s.bottomLabel}>{label}</div><div className={s.bottomValue}>{value}</div></div>}
+function Slider({label,value,min,max,step,state,setState}:{label:string;value:string;min:number;max:number;step:number;state:number;setState:(n:number)=>void}){return <label className="rounded-2xl border border-white/10 bg-slate-950/50 p-4"><div className="mb-2 flex justify-between text-sm font-black"><span>{label}</span><span>{value}</span></div><input className="w-full" type="range" min={min} max={max} step={step} value={state} onChange={(event)=>setState(Number(event.target.value))}/></label>}
+function ChipGroup<T extends string>({title,items,active,onClick}:{title:string;items:Array<{label:string;value:T}>;active:T[];onClick:(v:T)=>void}){return <div className="mt-4"><div className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-slate-400">{title}</div><div className="flex flex-wrap gap-2">{items.map((item)=><button key={item.value} onClick={()=>onClick(item.value)} className={`rounded-full px-3 py-2 text-xs font-black ${active.includes(item.value)?"bg-sky-200 text-slate-950":"border border-white/10 text-slate-300"}`}>{item.label}</button>)}</div></div>}
+function Mini({label,value}:{label:string;value:number}){return <div><div className="mb-1 flex justify-between text-[10px] font-black uppercase tracking-[0.12em] text-slate-400"><span>{label}</span><span>{value}</span></div><div className="h-1.5 rounded-full bg-white/10"><div className="h-1.5 rounded-full bg-sky-200" style={{width:`${Math.max(0, Math.min(100, value))}%`}}/></div></div>}
+function Metric({label,value}:{label:string;value:number}){return <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4"><div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">{label}</div><div className="text-3xl font-black">{value}</div></div>}
