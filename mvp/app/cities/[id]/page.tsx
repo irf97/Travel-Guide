@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CityActionTools } from "@/components/city-action-tools";
 import { getAllCityIntelligence, getCityIntelligenceById, type MonthName } from "@/lib/city-intelligence";
 
 export function generateStaticParams() {
@@ -11,11 +12,6 @@ export default function CityPage({ params }: { params: { id: string } }) {
   if (!city) notFound();
   const month: MonthName = "July";
   const weather = city.monthlyWeather[month];
-  const ideas = [
-    { title: "Social Surface Map", body: `Use ${city.venues.bars} bars, ${city.venues.cafes} cafes, and ${city.venues.clubs} clubs to decide whether the city works better for daytime social discovery, nightlife, or mixed-mode exploration.` },
-    { title: "Identity Split Planner", body: `Compare local-heavy zones vs tourist-heavy zones: locals ${city.identityVenueCounts.locals.bars} bar-equivalent venues, tourists ${city.identityVenueCounts.tourists.bars}, students ${city.identityVenueCounts.students.bars}.` },
-    { title: "Month Strategy", body: `${month} has ${weather.avgTempC}°C average, ${weather.rainDays} rain days, and outdoor nightlife score ${weather.outdoorNightlifeScore}/100. Use this to choose day/night pacing.` }
-  ];
 
   return <main className="min-h-screen bg-slate-950 px-4 py-10 text-white">
     <section className="mx-auto max-w-7xl rounded-[2rem] border border-white/10 bg-white/[0.055] p-6 shadow-2xl shadow-sky-950/30 backdrop-blur-xl">
@@ -26,7 +22,7 @@ export default function CityPage({ params }: { params: { id: string } }) {
           <h1 className="mt-3 text-5xl font-black tracking-[-0.06em] md:text-7xl">{city.name}</h1>
           <p className="mt-3 text-lg text-slate-300">{city.country} · {city.continent} · {city.visuals.symbol}</p>
         </div>
-        <div className="flex gap-2"><Link className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300" href="/rankings">Rankings</Link><Link className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950" href="/world">World</Link></div>
+        <div className="flex flex-wrap gap-2"><Link className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300" href="/rankings">Rankings</Link><Link className="rounded-full bg-sky-200 px-4 py-2 text-sm font-black text-slate-950" href="/world">World</Link><a className="rounded-full border border-white/10 px-4 py-2 text-sm font-black text-slate-300" href={`/api/city-intelligence?id=${city.id}`}>JSON</a></div>
       </div>
 
       <div className="mt-8 flex snap-x gap-4 overflow-x-auto pb-3">
@@ -38,6 +34,8 @@ export default function CityPage({ params }: { params: { id: string } }) {
       </div>
     </section>
 
+    <section className="mx-auto mt-6 max-w-7xl"><CityActionTools city={city} /></section>
+
     <section className="mx-auto mt-6 grid max-w-7xl gap-6 lg:grid-cols-[1.1fr_.9fr]">
       <div className="grid gap-4">
         <Panel title="Core scores"><div className="grid gap-3 md:grid-cols-2"><Metric label="Nightlife" value={city.nightlife_score}/><Metric label="Social density" value={city.social_density_score}/><Metric label="History" value={city.history_score}/><Metric label="Food" value={city.food_culture_score}/><Metric label="Mobility" value={city.mobility_score}/><Metric label="Venue density" value={city.venues.densityScore}/></div></Panel>
@@ -47,7 +45,7 @@ export default function CityPage({ params }: { params: { id: string } }) {
       <div className="grid gap-4">
         <Panel title="Tourism + passport relevance"><div className="grid grid-cols-2 gap-3"><Metric label="Tourism demand" value={city.tourism.cityTourismDemandScore}/><Metric label="Intl pressure" value={city.tourism.internationalTouristPressure}/><Metric label="Intl guests" value={city.tourism.internationalGuestShare}/><Metric label="Domestic" value={city.tourism.domesticGuestShare}/></div></Panel>
         <Panel title="Gender and nationality"><p className="text-sm leading-6 text-slate-300">Nightlife: {city.demographics.nightlifeGenderMix.male}% male · {city.demographics.nightlifeGenderMix.female}% female · {city.demographics.nightlifeGenderMix.unknown}% unknown</p><div className="mt-4 grid gap-2">{city.demographics.touristNationalityMix.map((item) => <div key={item.label} className="flex justify-between rounded-xl bg-white/[0.04] px-3 py-2 text-sm"><span>{item.label}</span><b>{item.share}%</b></div>)}</div></Panel>
-        <Panel title="Three smart actions">{ideas.map((idea) => <div key={idea.title} className="mb-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4"><h3 className="font-black text-white">{idea.title}</h3><p className="mt-2 text-sm leading-6 text-slate-300">{idea.body}</p></div>)}</Panel>
+        <Panel title="July baseline"><div className="grid grid-cols-2 gap-3"><Metric label="Avg temp" value={weather.avgTempC}/><Metric label="Rain days" value={weather.rainDays}/><Metric label="Weather comfort" value={weather.weatherComfort}/><Metric label="Outdoor nightlife" value={weather.outdoorNightlifeScore}/></div></Panel>
       </div>
     </section>
   </main>;
