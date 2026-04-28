@@ -21,12 +21,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark" data-theme="cosmic">
       <body>
-        <div className="fixed right-4 top-4 z-[90]"><ThemeSwitcher /></div>
-        <nav className="fixed bottom-3 left-1/2 z-[80] flex max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-3xl border border-white/10 bg-slate-950/85 p-2 text-xs font-black text-white shadow-2xl shadow-sky-950/40 backdrop-blur-xl sm:bottom-4 sm:rounded-full">
+        <div className="fixed right-3 top-3 z-[90]"><ThemeSwitcher /></div>
+        <nav className="fixed bottom-2 left-1/2 z-[80] flex w-[min(940px,calc(100vw-1rem))] -translate-x-1/2 items-center justify-center gap-1 overflow-x-auto rounded-full border border-white/10 bg-slate-950/80 px-2 py-1.5 text-[11px] font-black text-white shadow-xl shadow-sky-950/30 backdrop-blur-xl">
           {navLinks.map((link) => (
             <a
               key={link.href}
-              className={link.tone === "primary" ? "rounded-full bg-sky-200 px-3 py-2 text-slate-950 transition hover:bg-emerald-200" : "rounded-full border border-white/10 px-3 py-2 text-slate-300 transition hover:border-sky-200/60 hover:text-white"}
+              className={link.tone === "primary" ? "shrink-0 rounded-full bg-sky-200 px-3 py-1.5 text-slate-950 transition hover:bg-emerald-200" : "shrink-0 rounded-full border border-white/10 px-3 py-1.5 text-slate-300 transition hover:border-sky-200/60 hover:text-white"}
               href={link.href}
             >
               {link.label}
