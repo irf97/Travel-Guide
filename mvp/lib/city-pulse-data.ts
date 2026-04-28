@@ -5,9 +5,9 @@ function clamp(value: number) {
 }
 
 export function getStoredCityPulse(city: WorldCity) {
-  const articleCount = Math.max(8, Math.round(city.social_density_score / 3 + city.tourism_score_placeholder ?? 0));
+  const articleCount = Math.max(8, Math.round(city.social_density_score / 3 + city.history_score / 8));
   const eventMomentum = clamp(city.nightlife_score * 0.42 + city.social_density_score * 0.38 + city.history_score * 0.2);
-  const riskScore = clamp(38 + (city.risk_flags.length * 8) + (city.base_cost_per_person > 1200 ? 4 : 0));
+  const riskScore = clamp(38 + city.risk_flags.length * 8 + (city.base_cost_per_person > 1200 ? 4 : 0));
   const demandPressure = clamp(eventMomentum * 0.55 + city.social_density_score * 0.25 + (city.sea_access ? 8 : 0));
   return {
     sourceLabel: "stored local city pulse",
