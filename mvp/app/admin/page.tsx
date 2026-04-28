@@ -10,33 +10,36 @@ const routeGroups = [
     title: "Main product pages",
     description: "Human-facing screens for testing the product flow on phone or desktop.",
     routes: [
-      { label: "Main OS", href: "/", note: "Landing/dashboard shell" },
-      { label: "Rankings", href: "/rankings", note: "Main non-map ranking page with country/gender/nationality filters" },
-      { label: "World Globe", href: "/world", note: "3D globe + connected filters + memory + live city intelligence" },
+      { label: "World Globe", href: "/", note: "Main page: 3D globe + stored intelligence + anonymous memory" },
+      { label: "Rankings", href: "/rankings", note: "Main non-map ranking page with passport, gender, nationality, pulse, and visual sliders" },
+      { label: "Barcelona city page", href: "/cities/barcelona-spain", note: "Individual city intelligence page with visuals, pulse, gender, venues, and actions" },
       { label: "Saved Trips", href: "/trips", note: "Anonymous browser memory trip list" },
-      { label: "Lab", href: "/lab", note: "Experiment area" },
-      { label: "Portal", href: "/portal", note: "Portal/navigation surface" }
+      { label: "Lab", href: "/lab", note: "Functional comparison calculator and route-logic generator" },
+      { label: "Portal", href: "/portal", note: "Command hub for pages, APIs, audit, and fast city access" }
     ]
   },
   {
-    title: "Core health and memory APIs",
-    description: "Use these to verify DB, anonymous memory, and city seed metadata.",
+    title: "Stored city intelligence APIs",
+    description: "These are the product-runtime data APIs. They read stored data and deterministic models, not fragile frontend live providers.",
     routes: [
       { label: "Health", href: "/api/health", note: "Database/storage/AI/provider status JSON" },
       { label: "Memory", href: "/api/memory", note: "Anonymous visitor memory summary" },
-      { label: "Cities", href: "/api/cities", note: "All cities with modeled demographics" },
+      { label: "City intelligence", href: "/api/city-intelligence", note: "Unified stored city records" },
+      { label: "Barcelona intelligence", href: "/api/city-intelligence?id=barcelona-spain", note: "Single-city stored intelligence smoke test" },
+      { label: "Cities", href: "/api/cities", note: "All stored cities with weather, venues, tourism, visuals, demographics, and pulse" },
       { label: "Spain cities", href: "/api/cities?country=Spain", note: "Country filter test" },
-      { label: "Europe cities", href: "/api/cities?continent=Europe", note: "Continent filter test" }
+      { label: "Tourism snapshot", href: "/api/tourism", note: "Stored downloadable Eurostat tourism baseline" },
+      { label: "Top-100 audit", href: "/api/audit/top-100", note: "Completeness check for visuals, pulse, nationality, gender, venues, weather, tourism, and city pages" }
     ]
   },
   {
-    title: "Live/open intelligence APIs",
-    description: "No flight/hotel pricing here. These are the open/live intelligence layers.",
+    title: "Debug-only live checks",
+    description: "These are not the product runtime. Use only to inspect optional live provider behavior.",
     routes: [
-      { label: "Weather: Barcelona", href: "/api/live/weather?lat=41.3851&lng=2.1734", note: "Open-Meteo weather test" },
-      { label: "GDELT pulse: Barcelona", href: "/api/live/city-pulse?city=Barcelona", note: "News/risk/momentum pulse" },
-      { label: "City intelligence: Barcelona", href: "/api/live/city-intelligence?city=Barcelona&lat=41.3851&lng=2.1734&nightlifeScore=90&foodScore=88&socialScore=86", note: "Weather + GDELT + modeled venue/tourism proxy" },
-      { label: "City intelligence: Istanbul", href: "/api/live/city-intelligence?city=Istanbul&lat=41.0082&lng=28.9784&nightlifeScore=88&foodScore=94&socialScore=92", note: "Second city smoke test" }
+      { label: "Weather: Barcelona", href: "/api/live/weather?lat=41.3851&lng=2.1734", note: "Open-Meteo debug check" },
+      { label: "GDELT pulse: Barcelona", href: "/api/live/city-pulse?city=Barcelona", note: "Live news/risk/momentum debug check" },
+      { label: "Live city intelligence: Barcelona", href: "/api/live/city-intelligence?city=Barcelona&lat=41.3851&lng=2.1734&nightlifeScore=90&foodScore=88&socialScore=86", note: "Optional live/debug city intelligence" },
+      { label: "Live city intelligence: Istanbul", href: "/api/live/city-intelligence?city=Istanbul&lat=41.0082&lng=28.9784&nightlifeScore=88&foodScore=94&socialScore=92", note: "Second live/debug smoke test" }
     ]
   },
   {
@@ -69,7 +72,7 @@ export default function AdminPage() {
       <section className="rounded-[2rem] border border-white/10 bg-white/[0.055] p-6 shadow-2xl shadow-sky-950/30 backdrop-blur-xl">
         <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-200">Admin status</p>
         <h1 className="mt-3 text-4xl font-black tracking-[-0.055em] md:text-6xl">Backend control room</h1>
-        <p className="mt-4 max-w-3xl leading-7 text-slate-300">Personal-use readiness dashboard for database, storage, AI, open-data providers, live APIs, route testing, and commercial gap-fillers. This page is intentionally read-only until auth/admin roles are wired.</p>
+        <p className="mt-4 max-w-3xl leading-7 text-slate-300">Personal-use readiness dashboard for stored intelligence, anonymous memory, database, APIs, route testing, and optional live/debug providers.</p>
         <div className="mt-6 grid gap-3 md:grid-cols-4">
           <Metric label="Providers" value={`${configured}/${providers.length}`} note="configured or no-key available" />
           <Metric label="Database" value={db.configured ? "Live" : "Fallback"} note={db.reason ?? "DATABASE_URL active"} />
@@ -83,9 +86,12 @@ export default function AdminPage() {
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-200">Route console</p>
             <h2 className="mt-1 text-2xl font-black tracking-tight">Pages and pipeline links</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Open these directly to test all connected product pages, fallback-safe APIs, memory, demographics, weather, and GDELT city pulse from your phone.</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Open these directly to test the product pages, stored data, anonymous memory, city pages, and top-100 audit from your phone.</p>
           </div>
-          <a className="rounded-full bg-sky-200 px-4 py-2 text-xs font-black text-slate-950" href="/api/health">Open JSON health</a>
+          <div className="flex flex-wrap gap-2">
+            <a className="rounded-full bg-sky-200 px-4 py-2 text-xs font-black text-slate-950" href="/api/health">Open JSON health</a>
+            <a className="rounded-full bg-emerald-200 px-4 py-2 text-xs font-black text-slate-950" href="/api/audit/top-100">Open top-100 audit</a>
+          </div>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           {routeGroups.map((group) => (
