@@ -67,6 +67,14 @@ export const siteFeatures: SiteFeature[] = [
     acceptance: ["all cards navigate", "API links open", "fast city access opens city pages"]
   },
   {
+    title: "QA Dashboard",
+    href: "/qa",
+    status: "working",
+    group: "tools",
+    description: "Deployment smoke-test dashboard for city coverage, feature registry, stored API readiness, and model checks.",
+    acceptance: ["summary counts render", "smoke checks render", "QA JSON opens", "audit/debug/functionality links work"]
+  },
+  {
     title: "Stored City Plan API",
     href: "/api/city-plan?id=barcelona-spain&passport=turkish&identity=tourists&month=July&nights=5&budget=700",
     status: "working",
@@ -97,6 +105,14 @@ export const siteFeatures: SiteFeature[] = [
     group: "audit",
     description: "Machine-readable status map for major product features and top-100 audit summary.",
     acceptance: ["returns feature summary", "returns route links", "returns top-100 summary", "returns feature registry"]
+  },
+  {
+    title: "QA Smoke API",
+    href: "/api/qa/smoke",
+    status: "working",
+    group: "audit",
+    description: "Machine-readable deployment smoke test summary for coverage, feature routes, stored APIs, and model checks.",
+    acceptance: ["returns pass/warn/fail summary", "returns coverage metrics", "returns clickable check hrefs"]
   },
   {
     title: "Stored Rankings API",
